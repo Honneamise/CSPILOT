@@ -1,0 +1,63 @@
+*START
+
+*WHICHMENU
+T: Select one of the following options :
+T: 1) Review Company Policy
+T: 2) Review Current Inventory
+T: 3) Review Customer status
+A:
+M: 1 , 2 , 3 
+JY: *MATCHACCEPT1
+UN: *ERROR3
+J: *WHICHMENU
+
+*ERROR3
+T: Im sorry, i need number 1,2 or 3
+T: Please re-read the question and type just the single digit
+E:
+
+*MATCHACCEPT1
+M: 1
+JY: *POLICY
+JN: *MATCHACCEPT2
+
+*POLICY
+T: What kind of Sale is is ?
+T: 1) Equipment
+T: 2) Software
+T: 3) Documentation
+A:
+M: 1 , 2 , 3 
+JY: *SALETYPE
+UN: *ERROR3
+J: *POLICY
+
+*SALETYPE
+M:1 
+TY: Charge a markup of 25% on equipment
+M:2
+TY: Charge a markup of 15% on software
+M:3
+TY: We do not sell documentation only
+J: *MOREQUESTIONS
+
+*MATCHACCEPT2
+M: 2 
+TY: Sorry, the Current Inventory part of this program
+TY: has not yet been written
+JN: *MATCHACCEPT3
+J: *MOREQUESTIONS
+
+*MATCHACCEPT3
+TY: Sorry, the Customer Status part of this program
+TY: has not yet been written
+J: *MOREQUESTIONS
+
+*MOREQUESTIONS
+T: Do you need to review other Company Policy,
+T: Current Inventory or Customer Status ?
+A:
+M: YES
+JY: *START
+
+END:

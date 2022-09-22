@@ -27,11 +27,15 @@ public class Instruction
 /**********/
 public class Interpreter
 {
+    const int STACK_SIZE = 512;
+
     bool run;
 
     int pc;
     List<Instruction?> instructions;
     Dictionary<string,int> labels;
+
+    Stack<int> routine_stack;
 
     string? accept;
     bool match;
@@ -42,6 +46,7 @@ public class Interpreter
         pc = 0;
         instructions = new List<Instruction?>();
         labels = new Dictionary<string, int>();
+        routine_stack = new Stack<int>();
         accept = null;
         match = false;
 
@@ -68,6 +73,12 @@ public class Interpreter
 
     public void Execute()
     {
+        var restore_fgcolor = Console.ForegroundColor;
+        var restore_bgcolor = Console.BackgroundColor;
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.BackgroundColor = ConsoleColor.Black;
+
         run = true;
 
         while (run)
@@ -78,6 +89,9 @@ public class Interpreter
 
             ExecuteInstruction(ins);
         }
+
+        Console.ForegroundColor = restore_fgcolor;
+        Console.BackgroundColor = restore_bgcolor;
     }
 
     void Error(string str)
@@ -223,6 +237,10 @@ public class Interpreter
                 Execute_M(ins);
                 break;
 
+            case "MC":
+                Execute_MC(ins);
+                break;
+
             case "OUT":
                 Execute_OUT(ins);
                 break;
@@ -323,7 +341,11 @@ public class Interpreter
 
     void Execute_E(Instruction ins)
     {
-        Error("Instruction not implemented : " + ins.type);
+        if (routine_stack.Count <= 0) { Error("Routine Stack Underflow"); return; }
+
+        pc = routine_stack.Pop();
+
+        pc++;
     }
 
     void Execute_EI(Instruction ins)
@@ -382,7 +404,7 @@ public class Interpreter
 
         string num_str = ins.body.Trim();
 
-        if (!int.TryParse(num_str, out int num) || num<0) { Error("Invalid parameter : " + num_str); return; }
+        if (!uint.TryParse(num_str, out uint num) || num<0) { Error("Invalid parameter : " + num_str); return; }
 
         for (int i = 0; i<num; i++)
         {
@@ -394,13 +416,57 @@ public class Interpreter
 
     void Execute_M(Instruction ins)
     {
+        match = false;
+
         if (accept == null) { Error("Accept not set"); return; }
         if (ins.body == null) { Error("Missing match parameter"); return; }
 
-        match = accept.ToUpper().Equals(ins.body.Trim().ToUpper());
+        string[] tokens = ins.body.Split(',');
+
+        foreach (string token in tokens)
+        {
+            if (token.Length > 1)
+            {
+                //leading and trailing spaces
+                if (token[0] == ' ' && token[^1] == ' ')
+                {
+                    match = accept.ToUpper().Equals(token.Trim().ToUpper());
+                }
+
+                //only leading spaces
+                else if (token[0] == ' ')
+                {
+                    match = accept.ToUpper().StartsWith(token.TrimStart().ToUpper());
+                }
+
+                //only trailing spaces
+                else if (token[^1] == ' ')
+                {
+                    match = accept.ToUpper().EndsWith(token.TrimEnd().ToUpper());
+                }
+
+                //no spaces at all
+                else
+                {
+                    match = accept.ToUpper().Contains(token.ToUpper());
+                }
+            }
+            else//string is a single character
+            {
+                match = accept.ToUpper().Contains(token.ToUpper());
+            }
+
+            //a match has been found
+            if(match==true) { break; }
+        }
 
         pc++;
 
+    }
+
+    void Execute_MC(Instruction ins)
+    {
+        Error("Instruction not implemented : " + ins.type);
     }
 
     void Execute_OUT(Instruction ins)
@@ -442,7 +508,17 @@ public class Interpreter
 
     void Execute_U(Instruction ins)
     {
-        Error("Instruction not implemented : " + ins.type);
+        if(routine_stack.Count>=STACK_SIZE) { Error("Routine Stack overflow"); return; }
+
+        if(ins.body==null) { Error("Missing label"); return; }
+
+        string label = ins.body.Trim();
+        
+        if(!labels.ContainsKey(label)) { Error("Label not found"); return; }
+
+        routine_stack.Push(pc);
+
+        pc = labels[label];
     }
 
     void Execute_WAIT(Instruction ins)//vedi note
