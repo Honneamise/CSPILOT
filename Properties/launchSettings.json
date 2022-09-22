@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "CSPILOT": {
+      "commandName": "Project",
+      "workingDirectory": "./"
+    }
+  }
+}

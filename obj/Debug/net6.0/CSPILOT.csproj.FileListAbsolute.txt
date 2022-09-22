@@ -1,0 +1,15 @@
+D:\DATA\PROGETTI\2022\CSPILOT\bin\Debug\net6.0\CSPILOT.exe
+D:\DATA\PROGETTI\2022\CSPILOT\bin\Debug\net6.0\CSPILOT.deps.json
+D:\DATA\PROGETTI\2022\CSPILOT\bin\Debug\net6.0\CSPILOT.runtimeconfig.json
+D:\DATA\PROGETTI\2022\CSPILOT\bin\Debug\net6.0\CSPILOT.dll
+D:\DATA\PROGETTI\2022\CSPILOT\bin\Debug\net6.0\CSPILOT.pdb
+D:\DATA\PROGETTI\2022\CSPILOT\obj\Debug\net6.0\CSPILOT.csproj.AssemblyReference.cache
+D:\DATA\PROGETTI\2022\CSPILOT\obj\Debug\net6.0\CSPILOT.GeneratedMSBuildEditorConfig.editorconfig
+D:\DATA\PROGETTI\2022\CSPILOT\obj\Debug\net6.0\CSPILOT.AssemblyInfoInputs.cache
+D:\DATA\PROGETTI\2022\CSPILOT\obj\Debug\net6.0\CSPILOT.AssemblyInfo.cs
+D:\DATA\PROGETTI\2022\CSPILOT\obj\Debug\net6.0\CSPILOT.csproj.CoreCompileInputs.cache
+D:\DATA\PROGETTI\2022\CSPILOT\obj\Debug\net6.0\CSPILOT.dll
+D:\DATA\PROGETTI\2022\CSPILOT\obj\Debug\net6.0\refint\CSPILOT.dll
+D:\DATA\PROGETTI\2022\CSPILOT\obj\Debug\net6.0\CSPILOT.pdb
+D:\DATA\PROGETTI\2022\CSPILOT\obj\Debug\net6.0\CSPILOT.genruntimeconfig.cache
+D:\DATA\PROGETTI\2022\CSPILOT\obj\Debug\net6.0\ref\CSPILOT.dll
