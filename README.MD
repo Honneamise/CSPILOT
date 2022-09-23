@@ -12,6 +12,9 @@ You can find a pdf copy in the doc folder
 
 ## DEVELOPMENT NOTES: 
 ---
+URGENTE : FIXARE PARSEINTRUCTION ON BODY == NULL
+
+---
 per la WAIT provare :
 
 int a = Console.In.Peek();

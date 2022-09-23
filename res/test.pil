@@ -1,6 +1,9 @@
-T: Give me a word with a vowel in it
-A:
-M:a,e,i,o,u
-TY: RIGHT !!!
-TN: Ill bet your word has the letter "Y" in it
+T: What is your name ?
 
+A:
+
+M:
+
+T: here
+
+END:

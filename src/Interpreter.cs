@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 
 namespace Pilot;
 
@@ -34,20 +36,32 @@ public class Interpreter
     int pc;
     List<Instruction?> instructions;
     Dictionary<string,int> labels;
+    
+    Dictionary<string, int> num_vars;
+    Dictionary<string, List<string>> str_vars;
 
-    Stack<int> routine_stack;
+    Stack<int> routines;
 
-    string? accept;
+    string accept;
     bool match;
 
+    /***********************/
+    /* INTERPRETER SECTION */
+    /***********************/
     public Interpreter(string file)
     {
         run = false;
         pc = 0;
+
         instructions = new List<Instruction?>();
+
         labels = new Dictionary<string, int>();
-        routine_stack = new Stack<int>();
-        accept = null;
+        num_vars = new Dictionary<string, int>();
+        str_vars = new Dictionary<string, List<string>>();   
+
+        routines = new Stack<int>();
+
+        accept = "";
         match = false;
 
         string[] lines = File.ReadAllLines(file);      
@@ -115,7 +129,7 @@ public class Interpreter
         if (str[0] == '*')
         {
             //only label in the line
-            if(!str.Contains(' '))
+            if (str.IndexOf(' ')==-1)
             {
                 ins.label = str;
                 return ins;
@@ -127,6 +141,8 @@ public class Interpreter
                 str = str[str.IndexOf(' ')..];
 
                 str = str.TrimStart();
+
+                if (String.IsNullOrEmpty(str)) { return ins;  }
             }
         }
 
@@ -147,6 +163,7 @@ public class Interpreter
 
     void ExecuteInstruction(Instruction? ins)
     {
+        
         if (ins == null || ins.type == null) { pc++; return; }
 
         if (ins.cond != null && ins.cond != match) { pc++; return; }
@@ -283,12 +300,35 @@ public class Interpreter
         }
     }
 
-   
-
+    /*********************/
+    /* FUNCTIONS SECTION */
+    /*********************/
     void Execute_A(Instruction ins)
     {
-        accept = Console.ReadLine();
-        accept = accept?.Trim();
+        if (ins.body == null || String.IsNullOrEmpty(ins.body.Trim()) )
+        {
+            string? str = Console.ReadLine();
+            if (str == null) { accept = ""; }
+            else { accept = str.Trim(); }
+        }
+        else
+        {
+            string str = ins.body.Trim();
+
+            if (str[0]=='#')//it is a numeric variable
+            {
+
+            }
+            else if (str[0] == '$')//it is a string variable
+            {
+
+            }
+            else//error uknow variable type
+            {
+                Error("Missing variable type of : " + str);
+            }
+        }
+
         pc++;
     }
 
@@ -341,9 +381,9 @@ public class Interpreter
 
     void Execute_E(Instruction ins)
     {
-        if (routine_stack.Count <= 0) { Error("Routine Stack Underflow"); return; }
+        if (routines.Count <= 0) { Error("Routine Stack Underflow"); return; }
 
-        pc = routine_stack.Pop();
+        pc = routines.Pop();
 
         pc++;
     }
@@ -420,6 +460,10 @@ public class Interpreter
 
         if (accept == null) { Error("Accept not set"); return; }
         if (ins.body == null) { Error("Missing match parameter"); return; }
+        else
+        {
+            Console.WriteLine("dody is :" + ins.body + "*");
+        }
 
         string[] tokens = ins.body.Split(',');
 
@@ -508,7 +552,7 @@ public class Interpreter
 
     void Execute_U(Instruction ins)
     {
-        if(routine_stack.Count>=STACK_SIZE) { Error("Routine Stack overflow"); return; }
+        if(routines.Count>=STACK_SIZE) { Error("Routine Stack overflow"); return; }
 
         if(ins.body==null) { Error("Missing label"); return; }
 
@@ -516,7 +560,7 @@ public class Interpreter
         
         if(!labels.ContainsKey(label)) { Error("Label not found"); return; }
 
-        routine_stack.Push(pc);
+        routines.Push(pc);
 
         pc = labels[label];
     }
