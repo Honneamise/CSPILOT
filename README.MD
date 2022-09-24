@@ -12,7 +12,7 @@ You can find a pdf copy in the doc folder
 
 ## DEVELOPMENT NOTES: 
 ---
-URGENTE : FIXARE PARSEINTRUCTION ON BODY == NULL
+fare static per vvalid varname
 
 ---
 per la WAIT provare :
@@ -30,3 +30,6 @@ ti da il numero di colonne, se si lascia fare il resize, bisogna controllare cic
 Console.SetWindowSize(w, h)
 
 si puo' bloccare la dimensione della console ?
+
+---
+encoding console ???

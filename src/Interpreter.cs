@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -22,7 +23,21 @@ public class Instruction
 
     public override string ToString()
     {
-        return "Label: " + label + "\nType: " + type + "\nCond: " + cond + "\nBody: " + body;
+        string str = "\n**********";
+
+        str += "\nLabel:";
+        str += label ?? "null";
+
+        str += "\nType:";
+        str += type ?? "null";
+
+        str += "\nCond:";
+        str += (cond==null) ? "null" : cond;
+
+        str += "\nBody:";
+        str += body ?? "null";
+
+        return str;
     }
 }
 
@@ -155,7 +170,10 @@ public class Interpreter
         if (ins.type[^1] == 'Y') { ins.cond = true;  ins.type = ins.type[..^1]; }
         if (ins.type[^1] == 'N') { ins.cond = false; ins.type = ins.type[..^1]; }
 
-        ins.body = str[(str.IndexOf(':')+1)..];
+        string body = str[(str.IndexOf(':') + 1)..];
+
+        if (String.IsNullOrEmpty(body)) { ins.body = null; }
+        else { ins.body = body; };
 
         return ins;
     }
@@ -305,27 +323,50 @@ public class Interpreter
     /*********************/
     void Execute_A(Instruction ins)
     {
+        //simple accepts, no body parameters
         if (ins.body == null || String.IsNullOrEmpty(ins.body.Trim()) )
         {
-            string? str = Console.ReadLine();
-            if (str == null) { accept = ""; }
-            else { accept = str.Trim(); }
+            string? input = Console.ReadLine()?.Trim();
+
+            accept = input ?? "";
         }
-        else
+        else//body have parameters
         {
-            string str = ins.body.Trim();
-
-            if (str[0]=='#')//it is a numeric variable
-            {
-
+            string var_name = ins.body.Trim();
+            if(var_name.Contains(' ') || var_name.Length<2)
+            { 
+                Error("Invalid var name : " + var_name);
+                return;
             }
-            else if (str[0] == '$')//it is a string variable
-            {
 
+            if (var_name[0]=='#')//it is a numeric variable
+            {
+                int num;
+
+                while(true)//repeat until valid user input
+                {
+                    string? input = Console.ReadLine()?.Trim();
+
+                    if(!String.IsNullOrEmpty(input) && int.TryParse(input, out int _num))
+                    {
+                        num = _num;
+                        break;
+                    }
+
+                    Console.WriteLine("WARNING : invalid input");
+                }
+                
+                num_vars[var_name] = num;
+            }
+            else if (var_name[0] == '$')//it is a string variable
+            {
+                string? input = Console.ReadLine()?.Trim();
+
+                str_vars[var_name] = new List<string> { input ?? "" };
             }
             else//error uknow variable type
             {
-                Error("Missing variable type of : " + str);
+                Error("Invalid variable type : " + var_name);
             }
         }
 
@@ -458,13 +499,8 @@ public class Interpreter
     {
         match = false;
 
-        if (accept == null) { Error("Accept not set"); return; }
         if (ins.body == null) { Error("Missing match parameter"); return; }
-        else
-        {
-            Console.WriteLine("dody is :" + ins.body + "*");
-        }
-
+       
         string[] tokens = ins.body.Split(',');
 
         foreach (string token in tokens)
@@ -540,7 +576,13 @@ public class Interpreter
 
     void Execute_T(Instruction ins)
     {
+        if(String.IsNullOrEmpty(ins.body)) { pc++; return; }
+
+        string[] num_tokens = ins.body.Split('#');
+        string[] str_tokens = ins.body.Split('$');
+
         Console.WriteLine(ins.body);
+
         pc++;
     }
 
