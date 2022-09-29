@@ -102,28 +102,23 @@ public class Interpreter
 
     }
 
-    public void DumpVars()//stammerda non va
+    public void DumpVars()
     {
-        Console.WriteLine("##########");
-        Console.WriteLine("#NUM_VARS");
+        Console.WriteLine("**********");
 
-        foreach(KeyValuePair<string,int> pair in num_vars)
+        foreach (KeyValuePair<string,int> pair in num_vars)
         {
-            Console.WriteLine("**********");
+            
             Console.WriteLine(pair.Key + " : " + pair.Value);
         }
 
-        Console.WriteLine("$$$$$$$$$$");
-        Console.WriteLine("$STR_VARS");
-
         foreach (KeyValuePair<string, List<string>> pair in str_vars)
         {
-            Console.WriteLine("**********");
-            Console.WriteLine(pair.Key + " : " + pair.Value.Count);
+            Console.WriteLine(pair.Key + " : ");
 
-            foreach (string s in (List<string>)pair.Value)
+            foreach (string s in pair.Value)
             {
-                Console.WriteLine("- ", s);
+                Console.WriteLine("-" + s);
             }
         }
     }
