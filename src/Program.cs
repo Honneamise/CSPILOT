@@ -7,5 +7,7 @@ public class Program
         Interpreter intp = new("res/test.pil");
 
         intp.Execute();
+
+        intp.DumpVars();
     }
 }

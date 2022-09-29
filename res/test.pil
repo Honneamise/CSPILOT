@@ -1,25 +1,6 @@
-﻿T: Write a number
-
-A: #NUMBER
-
-T:ciao il numero messo e': #NUMBER
-
-T:ciao il numero:#NUMBER
-^^^^^^^^^^^^^^^^^^^
-				 ||
-				 ||
-				 ||
-				 || is the following special too ? -yes, continue advance
-				 |								   - no,go to first space or EOL
-				 |								 and replace with value
-				 found special char
-
+﻿T: insert a number
+A: #NUMBER       
+T: insert a string
+A: $STRING
 
 END:
-
-
-DEF: $VARNAME , "ciao"
-
-T: the variable value is : $VARNAME --> the variable value is : "ciao"
-
-T: how do i print the dollar sign ? use $$ --> how do i print the dollar sign ? use $
