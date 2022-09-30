@@ -1,9 +1,6 @@
-﻿using System.ComponentModel;
-using System.Diagnostics;
-using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
+﻿namespace Pilot;
 
-namespace Pilot;
+using Expression;
 
 /**********/
 public class Instruction
@@ -99,6 +96,69 @@ public class Interpreter
 
         pc = 0;
 
+    }
+
+    public string FormatString(string str)
+    {
+        int index = 0;
+        string s = "";
+
+        // EXAMPLES :
+        // T: ## --> #
+        // T: #NUMBER --> stampa il valore della variabile NUMBER
+        // T: ###NUMBER --> #123
+        // T: ##NUMBER --> #NUMBER
+        // T: ### --> # + ERRORE
+        while (index < str.Length)
+        {
+            if ((index + 1 < str.Length) && (str[index] == '#' || str[index] == '$'))
+            {
+                if (str[index] == str[index + 1])//double ##
+                {
+                    s += str[index];//symbol
+                    index += 2;
+                    continue;
+                }
+                else// single # it is a variable
+                {
+                    int end = index;
+                    while (end < str.Length && !Char.IsWhiteSpace(str[end]))
+                    { end++; }
+
+                    string label = str[index..end];
+
+                    if (label.Length == 1) { Error("Missing label"); }
+
+                    if (num_vars.ContainsKey(label))//is numeric ?
+                    {
+                        s += num_vars[label];
+                    }
+                    else if (str_vars.ContainsKey(label))//is string ?
+                    {
+                        s += str_vars[label];
+                    }
+                    else
+                    {
+                        Error("Label not found : " + label);//is an error :-)
+                    }
+
+                    index = end;
+                    continue;
+                }
+
+            }
+
+            //identifier at last position
+            if (index == str.Length - 1 && (str[index] == '#' || str[index] == '$'))
+            {
+                Error("Missing label");
+            }
+
+            s += str[index];
+            index++;
+        }
+
+        return s;
     }
 
     public void DumpVars()
@@ -400,7 +460,32 @@ public class Interpreter
 
     void Execute_C(Instruction ins)
     {
-        Error("Instruction not implemented : " + ins.type);
+        string str = ins.body.Trim();
+
+        if (String.IsNullOrEmpty(str)) { Error("Missing compute statement"); }
+
+        //get assign variable
+        int end = str.IndexOf('=');
+
+        if (str[0]!='#' || end==-1 || end==str.Length-1) { Error("Invalid compute statement"); }
+
+        string var_result = str[..end];
+
+        //get infix expression
+        string infix = str[(end+1)..];
+        if (String.IsNullOrEmpty(infix)) { Error("Invalid compute statement"); }
+
+        //infix to postfix
+        string postfix = Expression.InfixToPostfix(infix);
+
+        Console.WriteLine("TEST : " + var_result);
+        Console.WriteLine("TEST : " + postfix);
+
+        //substitute variables
+
+        //evaluate expression
+
+        pc++;
     }
 
     void Execute_CASE(Instruction ins)
@@ -605,79 +690,24 @@ public class Interpreter
         Error("Instruction not implemented : " + ins.type);
     }
 
-    //rifare
     void Execute_T(Instruction ins)
     {
-        if(String.IsNullOrEmpty(ins.body)) { pc++; return; }
+        if (String.IsNullOrEmpty(ins.body)) { pc++; return; }
 
-        int index = 0;
-        string str = "";
+        string str = FormatString(ins.body);
 
-        // EXAMPLES :
-        // T: ## --> #
-        // T: #NUMBER --> stampa il valore della variabile NUMBER
-        // T: ###NUMBER --> #123
-        // T: ##NUMBER --> #NUMBER
-        // T: ### --> # + ERRORE
-        while (index< ins.body.Length)   
-        {
-            if( (index+1 < ins.body.Length) && (ins.body[index] == '#' || ins.body[index] == '$'))
-            {
-                if (ins.body[index] == ins.body[index + 1])//double ##
-                {
-                    str += ins.body[index];//symbol
-                    index += 2;
-                    continue;
-                }
-                else// single # it is a variable
-                {
-                    int end = index;
-                    while (end < ins.body.Length && !Char.IsWhiteSpace(ins.body[end]))
-                    { end++; }
-
-                    string label = ins.body[index..end];
-
-                    if (label.Length == 1) { Error("Missing label"); }
-
-                    if (num_vars.ContainsKey(label))//is numeric ?
-                    {
-                        str += num_vars[label];
-                    }
-                    else if (str_vars.ContainsKey(label))//is string ?
-                    {
-                        str += str_vars[label];
-                    }
-                    else
-                    {
-                        Error("Label not found : " + label);//is an error :-)
-                    }
-                
-                    index = end;
-                    continue;
-                }
-
-            }
-
-            //identifier at last position
-            if(index==ins.body.Length-1 && (ins.body[index]=='#' || ins.body[index] == '$'))
-            { 
-                Error("Missing label"); 
-            }
-
-            str += ins.body[index];
-
-            index++;
-        }
-        
         Console.WriteLine(str);
 
         pc++;
     }
 
-    //rifare
     void Execute_TNR(Instruction ins)
     {
-        Console.Write(ins.body);
+        if (String.IsNullOrEmpty(ins.body)) { pc++; return; }
+
+        string str = FormatString(ins.body);
+
+        Console.Write(str);
 
         pc++;
     }

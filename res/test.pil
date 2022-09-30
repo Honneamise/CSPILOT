@@ -1,12 +1,11 @@
-﻿
+﻿T: insert first number
+A: #A
 
-T:insert a number
-A: #NUMBER
+T: insert second number
+A: #B
 
-T: insert a name
+C: #RESULT = #A * #B
 
-A: $NAME 
-
-T: hai inserito ##NUMBER e $NAME
+T: result is : #RESULT
 
 END:
