@@ -35,7 +35,6 @@ public class Instruction
         str += (cond==null) ? "null" : cond;
 
         str += "\nBody:";
-        str += body ?? "null";
 
         return str;
     }
@@ -53,7 +52,7 @@ public class Interpreter
     Dictionary<string,int> labels;
     
     Dictionary<string, int> num_vars;
-    Dictionary<string, List<string>> str_vars;
+    Dictionary<string, string> str_vars;
 
     Stack<int> routines;
 
@@ -72,7 +71,7 @@ public class Interpreter
 
         labels = new Dictionary<string, int>();
         num_vars = new Dictionary<string, int>();
-        str_vars = new Dictionary<string, List<string>>();   
+        str_vars = new Dictionary<string, string>();   
 
         routines = new Stack<int>();
 
@@ -112,14 +111,9 @@ public class Interpreter
             Console.WriteLine(pair.Key + " : " + pair.Value);
         }
 
-        foreach (KeyValuePair<string, List<string>> pair in str_vars)
+        foreach (KeyValuePair<string, string> pair in str_vars)
         {
-            Console.WriteLine(pair.Key + " : ");
-
-            foreach (string s in pair.Value)
-            {
-                Console.WriteLine("-" + s);
-            }
+            Console.WriteLine(pair.Key + " : " + pair.Value);
         }
     }
 
@@ -215,7 +209,7 @@ public class Interpreter
 
         if (ins.cond != null && ins.cond != match) { pc++; return; }
 
-        switch (ins.type)
+        switch (ins.type.ToUpper())
         {
             case "A":
                 Execute_A(ins);
@@ -386,7 +380,7 @@ public class Interpreter
             {
                 string? input = Console.ReadLine()?.Trim();
 
-                str_vars[param] = new List<string>() { input ?? "" };
+                str_vars[param] = input ?? "";
 
             }
             else//error uknow variable type
@@ -516,14 +510,30 @@ public class Interpreter
         pc++;
     }
 
-    void Execute_M(Instruction ins)//need to add match with variables
+    void Execute_M(Instruction ins)
     {
         match = false;
+        string[] tokens;
 
-        if (String.IsNullOrEmpty(ins.body)) { Error("Missing match parameter"); return; }
-       
-        string[] tokens = ins.body.Split(',');
+        if (String.IsNullOrEmpty(ins.body) || String.IsNullOrEmpty(ins.body.Trim())) 
+        { 
+            Error("Missing match parameter");
+        }        
 
+        if (ins.body.Trim()[0] == '$')//it is a label
+        {
+            string label = ins.body.Trim();
+
+            if (!str_vars.ContainsKey(label)) { Error("Label not faound : " + label);  }
+
+            tokens =  str_vars[label].Split(',');
+        }
+        else//parse the body
+        {
+            tokens = ins.body.Split(',');
+        }
+
+        //match every token
         foreach (string token in tokens)
         {
             if (token.Length > 1)
@@ -600,7 +610,66 @@ public class Interpreter
     {
         if(String.IsNullOrEmpty(ins.body)) { pc++; return; }
 
-        Console.WriteLine(ins.body.Replace("##","^"));
+        int index = 0;
+        string str = "";
+
+        // EXAMPLES :
+        // T: ## --> #
+        // T: #NUMBER --> stampa il valore della variabile NUMBER
+        // T: ###NUMBER --> #123
+        // T: ##NUMBER --> #NUMBER
+        // T: ### --> # + ERRORE
+        while (index< ins.body.Length)   
+        {
+            if( (index+1 < ins.body.Length) && (ins.body[index] == '#' || ins.body[index] == '$'))
+            {
+                if (ins.body[index] == ins.body[index + 1])//double ##
+                {
+                    str += ins.body[index];//symbol
+                    index += 2;
+                    continue;
+                }
+                else// single # it is a variable
+                {
+                    int end = index;
+                    while (end < ins.body.Length && !Char.IsWhiteSpace(ins.body[end]))
+                    { end++; }
+
+                    string label = ins.body[index..end];
+
+                    if (label.Length == 1) { Error("Missing label"); }
+
+                    if (num_vars.ContainsKey(label))//is numeric ?
+                    {
+                        str += num_vars[label];
+                    }
+                    else if (str_vars.ContainsKey(label))//is string ?
+                    {
+                        str += str_vars[label];
+                    }
+                    else
+                    {
+                        Error("Label not found : " + label);//is an error :-)
+                    }
+                
+                    index = end;
+                    continue;
+                }
+
+            }
+
+            //identifier at last position
+            if(index==ins.body.Length-1 && (ins.body[index]=='#' || ins.body[index] == '$'))
+            { 
+                Error("Missing label"); 
+            }
+
+            str += ins.body[index];
+
+            index++;
+        }
+        
+        Console.WriteLine(str);
 
         pc++;
     }

@@ -1,6 +1,12 @@
-﻿T: insert a number
-A: #NUMBER       
-T: insert a string
-A: $STRING
+﻿
+
+T:insert a number
+A: #NUMBER
+
+T: insert a name
+
+A: $NAME 
+
+T: hai inserito ##NUMBER e $NAME
 
 END:
