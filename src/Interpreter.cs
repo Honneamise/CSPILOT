@@ -1,10 +1,13 @@
 ﻿namespace Pilot;
 
 using Expression;
+using System.Data;
+using System.Security.AccessControl;
 
 /**********/
 public class Instruction
 {
+    public string raw;
     public string? label;
     public string? type;
     public bool?   cond;
@@ -12,13 +15,15 @@ public class Instruction
 
     public Instruction()
     {
+        raw = "";
+
         label = null;
         type  = null;
         cond  = null;
         body  = "";
     }
 
-    public override string ToString()
+    public override string ToString()//REMOVE AFTER DEBUG
     {
         string str = "\n**********";
 
@@ -48,7 +53,7 @@ public class Interpreter
     List<Instruction> instructions;
     Dictionary<string,int> labels;
     
-    Dictionary<string, int> num_vars;
+    Dictionary<string, float> num_vars;
     Dictionary<string, string> str_vars;
 
     Stack<int> routines;
@@ -56,10 +61,12 @@ public class Interpreter
     string accept;
     bool match;
 
+    string? error;
+
     /***********************/
     /* INTERPRETER SECTION */
     /***********************/
-    public Interpreter(string file)
+    public Interpreter()
     {
         run = false;
         pc = 0;
@@ -67,21 +74,113 @@ public class Interpreter
         instructions = new List<Instruction>();
 
         labels = new Dictionary<string, int>();
-        num_vars = new Dictionary<string, int>();
-        str_vars = new Dictionary<string, string>();   
+        num_vars = new Dictionary<string, float>();
+        str_vars = new Dictionary<string, string>();
 
         routines = new Stack<int>();
 
         accept = "";
         match = false;
 
+        error = null;
+    }
+
+    public void Reset()
+    {
+        run = false;
+        pc = 0;
+
+        instructions = new List<Instruction>();
+
+        labels = new Dictionary<string, int>();
+        num_vars = new Dictionary<string, float>();
+        str_vars = new Dictionary<string, string>();
+
+        routines = new Stack<int>();
+
+        accept = "";
+        match = false;
+
+        error= null;
+    }
+
+    public void Start()
+    {
+        var restore_fgcolor = Console.ForegroundColor;
+        var restore_bgcolor = Console.BackgroundColor;
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.BackgroundColor = ConsoleColor.Black;
+
+        Console.WriteLine("************************************");
+        Console.WriteLine("* PILOT INTERPRETER                *");
+        Console.WriteLine("*                                  *");
+        Console.WriteLine("* COMMANDS : LOAD, LIST, RUN, EXIT *");
+        Console.WriteLine("************************************");
+
+        string input;
+
+        while(true)
+        {
+            Console.Write(":>");
+
+            input = Console.ReadLine() ?? "";
+
+            if (String.IsNullOrEmpty(input.Trim())) { continue; }
+
+            if (input.StartsWith("LOAD"))
+            {
+                string file_name = input.Replace("LOAD", "").Trim();
+
+                if (String.IsNullOrEmpty(file_name)) { Console.WriteLine("Missing or invalid file name"); continue; }
+
+                if(!File.Exists(file_name)) { Console.WriteLine("File does not exist : " + file_name); continue;  }
+                
+                Load(file_name);
+
+                if (error != null) { Console.WriteLine(error); }
+            }
+            else if (input.StartsWith("RUN"))
+            {
+                Run();
+
+                if (error != null) { Console.WriteLine(error); }
+            }
+            else if (input.StartsWith("LIST"))
+            {
+                List();
+            }
+            else if (input.StartsWith("CLEAR"))
+            {
+                Reset();
+            }
+            else if (input.StartsWith("EXIT"))
+            {
+                break;
+            }
+            else
+            {
+                Console.WriteLine("Unknow command : " + input);
+            }
+
+        }
+
+        Console.ForegroundColor = restore_fgcolor;
+        Console.BackgroundColor = restore_bgcolor;
+    }
+
+    //load intp with file and set instructions
+    public void Load(string file)
+    {
+        Reset();
+
         string[] lines = File.ReadAllLines(file);      
 
         foreach (string line in lines)
         {
-            Instruction ins = ParseInstruction(line);
+            if(error!=null) { return; }//set error and exit
 
-            Console.WriteLine(ins);//REMOVE ME
+            Instruction ins = ParseInstruction(line);
 
             instructions.Add(ins);
 
@@ -98,170 +197,32 @@ public class Interpreter
 
     }
 
-    public string FormatString(string str)
+    //list current instructions loaded
+    public void List()
     {
-        int index = 0;
-        string s = "";
-
-        // EXAMPLES :
-        // T: ## --> #
-        // T: #NUMBER --> stampa il valore della variabile NUMBER
-        // T: ###NUMBER --> #123
-        // T: ##NUMBER --> #NUMBER
-        // T: ### --> # + ERRORE
-        while (index < str.Length)
+        foreach(Instruction ins in instructions)
         {
-            if ((index + 1 < str.Length) && (str[index] == '#' || str[index] == '$'))
-            {
-                if (str[index] == str[index + 1])//double ##
-                {
-                    s += str[index];//symbol
-                    index += 2;
-                    continue;
-                }
-                else// single # it is a variable
-                {
-                    int end = index;
-                    while (end < str.Length && !Char.IsWhiteSpace(str[end]))
-                    { end++; }
-
-                    string label = str[index..end];
-
-                    if (label.Length == 1) { Error("Missing label"); }
-
-                    if (num_vars.ContainsKey(label))//is numeric ?
-                    {
-                        s += num_vars[label];
-                    }
-                    else if (str_vars.ContainsKey(label))//is string ?
-                    {
-                        s += str_vars[label];
-                    }
-                    else
-                    {
-                        Error("Label not found : " + label);//is an error :-)
-                    }
-
-                    index = end;
-                    continue;
-                }
-
-            }
-
-            //identifier at last position
-            if (index == str.Length - 1 && (str[index] == '#' || str[index] == '$'))
-            {
-                Error("Missing label");
-            }
-
-            s += str[index];
-            index++;
-        }
-
-        return s;
-    }
-
-    public void DumpVars()
-    {
-        Console.WriteLine("**********");
-
-        foreach (KeyValuePair<string,int> pair in num_vars)
-        {
-            
-            Console.WriteLine(pair.Key + " : " + pair.Value);
-        }
-
-        foreach (KeyValuePair<string, string> pair in str_vars)
-        {
-            Console.WriteLine(pair.Key + " : " + pair.Value);
+            Console.WriteLine(ins.raw);
         }
     }
 
-    public void Execute()
+    //run the current loaded instructions
+    //if something weird happen error will be set 
+    public void Run()
     {
-        var restore_fgcolor = Console.ForegroundColor;
-        var restore_bgcolor = Console.BackgroundColor;
-
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.BackgroundColor = ConsoleColor.Black;
-
+        pc = 0;
         run = true;
+        error = null;
 
-        while (run)
+        while (run && error==null)
         {
-            if(pc<0 || pc>=instructions.Count ) { Error("Program counter out of range"); }
+            if (pc < 0 || pc >= instructions.Count) { Error("Program counter out of range"); return; }
 
             Instruction ins = instructions[pc];
 
             ExecuteInstruction(ins);
         }
-
-        Console.ForegroundColor = restore_fgcolor;
-        Console.BackgroundColor = restore_bgcolor;
     }
-
-    void Error(string str)
-    {
-        Console.WriteLine(pc+1 + ":" + str);
-
-        Environment.Exit(-1);
-    }
-
-    Instruction ParseInstruction(string str)
-    {
-        Instruction ins = new();
-
-        str = str.TrimStart();
-
-        if (String.IsNullOrEmpty(str)) { return ins; };
-
-        //we have label
-        if (str[0] == '*')
-        {
-            ins.label = "*";
-            int i = 1;
-            while (i<str.Length && (Char.IsLetter(str[i]) || Char.IsNumber(str[i])))
-            {
-                ins.label += str[i];
-                i++;
-            }
-            
-            if (i==1) { Error("Missing label name"); }
-
-            if (i == str.Length) { return ins; }; //only label in the line
-
-            if (!Char.IsWhiteSpace(str[i])) { Error("Invalid label format"); }
-
-            str = str[i..].TrimStart();
-
-            if (String.IsNullOrEmpty(str)) { return ins; };//only label followed by shit
-        }  
-
-        //get type 
-        if (!str.Contains(':')) { Error("Missing instruction separator");  }
-
-        ins.type = str[..str.IndexOf(':')];
-        ins.type = ins.type.TrimEnd();
-
-        if (String.IsNullOrEmpty(ins.type)) { Error("Missing instruction type"); }
-
-        //we have instruction condition
-        if (ins.type.Length > 1)
-        {
-            if (ins.type[^1] == 'Y') { ins.cond = true; ins.type = ins.type[..^1]; }
-            if (ins.type[^1] == 'N') { ins.cond = false; ins.type = ins.type[..^1]; }
-        }
-
-        //get body 
-        str = str[str.IndexOf(':')..];
-
-        if (str.Length == 1) { return ins; };//empty body
-
-        ins.body = str[1..];
-
-        return ins;
-    }
-
 
     void ExecuteInstruction(Instruction ins)
     {
@@ -401,6 +362,152 @@ public class Interpreter
         }
     }
 
+
+    /*****************/
+    /* UTILS SECTION */
+    /*****************/
+
+    public void DumpVars()//REMOVE ME AFTER DEBUG
+    {
+        Console.WriteLine("**********");
+
+        foreach (KeyValuePair<string, float> pair in num_vars)
+        {
+
+            Console.WriteLine(pair.Key + " : " + pair.Value);
+        }
+
+        foreach (KeyValuePair<string, string> pair in str_vars)
+        {
+            Console.WriteLine(pair.Key + " : " + pair.Value);
+        }
+    }
+
+    Instruction ParseInstruction(string str)
+    {
+        Instruction ins = new();
+        ins.raw = str;
+
+        str = str.TrimStart();
+
+        if (String.IsNullOrEmpty(str)) { return ins; };
+
+        //we have label
+        if (str[0] == '*')
+        {
+            ins.label = "*";
+            int i = 1;
+            while (i < str.Length && (Char.IsLetter(str[i]) || Char.IsNumber(str[i])))
+            {
+                ins.label += str[i];
+                i++;
+            }
+
+            if (i == 1) { Error("Missing label name"); }
+
+            if (i == str.Length) { return ins; }; //only label in the line
+
+            if (!Char.IsWhiteSpace(str[i])) { Error("Invalid label format"); }
+
+            str = str[i..].TrimStart();
+
+            if (String.IsNullOrEmpty(str)) { return ins; };//only label followed by shit
+        }
+
+        //get type 
+        if (!str.Contains(':')) { Error("Missing instruction separator"); }
+
+        ins.type = str[..str.IndexOf(':')];
+        ins.type = ins.type.TrimEnd();
+
+        if (String.IsNullOrEmpty(ins.type)) { Error("Missing instruction type"); }
+
+        //we have instruction condition
+        if (ins.type.Length > 1)
+        {
+            if (ins.type[^1] == 'Y') { ins.cond = true; ins.type = ins.type[..^1]; }
+            if (ins.type[^1] == 'N') { ins.cond = false; ins.type = ins.type[..^1]; }
+        }
+
+        //get body 
+        str = str[str.IndexOf(':')..];
+
+        if (str.Length == 1) { return ins; };//empty body
+
+        ins.body = str[1..];
+
+        return ins;
+    }
+
+    public string FormatString(string str)
+    {
+        int index = 0;
+        string s = "";
+
+        // EXAMPLES :
+        // T: ## --> #
+        // T: #NUMBER --> stampa il valore della variabile NUMBER
+        // T: ###NUMBER --> #123
+        // T: ##NUMBER --> #NUMBER
+        // T: ### --> # + ERRORE
+        while (index < str.Length)
+        {
+            if ((index + 1 < str.Length) && (str[index] == '#' || str[index] == '$'))
+            {
+                if (str[index] == str[index + 1])//double ##
+                {
+                    s += str[index];//symbol
+                    index += 2;
+                    continue;
+                }
+                else// single # it is a variable
+                {
+                    int end = index;
+                    while (end < str.Length && !Char.IsWhiteSpace(str[end]))
+                    { end++; }
+
+                    string label = str[index..end];
+
+                    if (label.Length == 1) { Error("Missing label"); }
+
+                    if (num_vars.ContainsKey(label))//is numeric ?
+                    {
+                        s += num_vars[label];
+                    }
+                    else if (str_vars.ContainsKey(label))//is string ?
+                    {
+                        s += str_vars[label];
+                    }
+                    else
+                    {
+                        Error("Label not found : " + label);//is an error :-)
+                    }
+
+                    index = end;
+                    continue;
+                }
+
+            }
+
+            //identifier at last position
+            if (index == str.Length - 1 && (str[index] == '#' || str[index] == '$'))
+            {
+                Error("Missing label");
+            }
+
+            s += str[index];
+            index++;
+        }
+
+        return s;
+    }
+
+    void Error(string str)
+    {
+        if(error==null) { error = pc + 1 + ":" + str; }
+    }
+
+
     /*********************/
     /* FUNCTIONS SECTION */
     /*********************/
@@ -417,15 +524,15 @@ public class Interpreter
         }
         else//body have parameters
         {
-            if (param[0]=='#')//it is a numeric variable
+            if (param[0]=='#' && param.Length>1)//it is a numeric variable
             {
-                int num;
+                float num;
 
                 while(true)//repeat until valid user input
                 {
                     string? input = Console.ReadLine()?.Trim();
 
-                    if(!String.IsNullOrEmpty(input) && int.TryParse(input, out int _num))
+                    if(!String.IsNullOrEmpty(input) && float.TryParse(input, out float _num))
                     {
                         num = _num;
                         break;
@@ -436,7 +543,7 @@ public class Interpreter
                 
                 num_vars[param] = num;
             }
-            else if (param[0] == '$')//it is a string variable
+            else if (param[0] == '$' && param.Length > 1)//it is a string variable
             {
                 string? input = Console.ReadLine()?.Trim();
 
@@ -469,7 +576,7 @@ public class Interpreter
 
         if (str[0]!='#' || end==-1 || end==str.Length-1) { Error("Invalid compute statement"); }
 
-        string var_result = str[..end];
+        string var_name = str[..end].Trim();
 
         //get infix expression
         string infix = str[(end+1)..];
@@ -478,12 +585,30 @@ public class Interpreter
         //infix to postfix
         string postfix = Expression.InfixToPostfix(infix);
 
-        Console.WriteLine("TEST : " + var_result);
-        Console.WriteLine("TEST : " + postfix);
-
         //substitute variables
+        string[] tokens = postfix.Split(' ');
+        postfix = "";
+        foreach(String token in tokens)
+        {
+            if(token.Length>1 && token[0]=='#')
+            {
+                if (!num_vars.ContainsKey(token)) { Error("Variable not found : " + token); }
+                else { postfix += num_vars[token]; }
+            }
+            else
+            {
+                postfix += token;
+            }
+
+            postfix += ' ';
+        }
 
         //evaluate expression
+        float? f = Expression.Evaluate(postfix);
+
+        if(f==null) { Error("Expression error"); return; }//should return
+
+        num_vars[var_name] = (float)f;
 
         pc++;
     }
@@ -609,7 +734,7 @@ public class Interpreter
         {
             string label = ins.body.Trim();
 
-            if (!str_vars.ContainsKey(label)) { Error("Label not faound : " + label);  }
+            if (!str_vars.ContainsKey(label)) { Error("Label not found : " + label);  }
 
             tokens =  str_vars[label].Split(',');
         }
@@ -727,7 +852,7 @@ public class Interpreter
         pc = labels[label];
     }
 
-    void Execute_WAIT(Instruction ins)//vedi note
+    void Execute_WAIT(Instruction ins)
     {
         Error("Instruction not implemented : " + ins.type);
     }

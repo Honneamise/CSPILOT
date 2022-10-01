@@ -4,8 +4,11 @@ A: #A
 T: insert second number
 A: #B
 
-C: #RESULT = #A * #B
+T: you inserted #A and #B
 
-T: result is : #RESULT
+C: #RESULT1 = #A * #B
+
+
+T: result is : #RESULT1 
 
 END:

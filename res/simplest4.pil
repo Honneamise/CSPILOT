@@ -1,0 +1,25 @@
+
+*START
+
+T: What is the cost of the product ?
+A: #PRODUCTCOST
+
+T: Which division is the product from ?
+T: A) Oakland
+T: B) New York
+T: Type the letterof your chouice
+A:
+M: B
+UY: *NYCHARGE
+
+C: #PRICE = #PRODUCTCOST + #SURCHARGE
+T: The price to charge for the product is #PRICE dollars
+
+END:
+
+*NYCHARGE
+T: Will there be additional shipping charges ?
+T: If so how much ? (Enter 0 for none)
+A: #SHIP
+C: #SURCHARGE = #SHIP + 10
+E:

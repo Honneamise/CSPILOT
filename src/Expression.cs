@@ -1,9 +1,9 @@
+using System.Runtime.InteropServices;
+
 namespace Expression;
 
 public static class Expression
 {
-    static Stack<char> stack = new();
-
     static int OperatorPrecedence(char op)
     {
         switch (op)
@@ -30,7 +30,7 @@ public static class Expression
 
     public static String InfixToPostfix(String infix)
     {
-        stack = new Stack<char>();
+        Stack<char> stack = new Stack<char>();
 
         char[] str = infix.ToCharArray();
 
@@ -133,5 +133,72 @@ public static class Expression
         return postfix;
     }
 
+   
+    //null if error ( ex: division by 0 )
+    public static float? Evaluate(String postfix)
+    {
+        String[] tokens;
+
+        Stack<float> stack;
+
+        stack = new Stack<float>();
+
+        tokens = postfix.Split(" ");
+
+        int count = 0;
+
+        while (count < tokens.Length)
+        {
+
+            if (String.IsNullOrEmpty(tokens[count].Trim()))
+            {
+                count++;
+                continue;
+            }
+
+            switch (tokens[count].Trim())
+            {
+                case "(":
+                case ")":
+                    break;
+
+                case "+":
+                    stack.Push(stack.Pop() + stack.Pop());
+                    break;
+
+                case "-":
+                    {
+                        float b = stack.Pop();
+                        float a = stack.Pop();
+                        stack.Push(a - b);
+                    }
+                    break;
+
+                case "*":
+                    stack.Push(stack.Pop() * stack.Pop());
+                    break;
+
+                case "/":
+                    {
+                        float b = stack.Pop();
+                        float a = stack.Pop();
+
+                        if (b == 0) return null;//division by 0
+
+                        stack.Push(a / b);
+                    }
+                    break;
+
+                default://is a number
+                    if (!float.TryParse(tokens[count], out float f)) { return null; }
+                    stack.Push(f);
+                    break;
+            }
+
+            count++;
+        }
+
+        return stack.Pop();
+    }
 
 }
