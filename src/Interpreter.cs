@@ -43,11 +43,8 @@ public class Instruction
 public class Interpreter
 {
     readonly int STACK_SIZE = 512;
-    readonly string[] instructions_list = { "A", "BELL", "C", "CASE", "CH", "CLRS", "CPM",
-                                            "CUR", "DEF", "DI","E","EI","END", "ERASTR", "ESC",
-                                            "EXIST", "HOLD", "INMAX", "J", "LF", "M", "MC",
-                                            "OUT", "PR", "R", "RESET", "SAVE", "T", "TNR",
-                                            "U", "WAIT" };
+    readonly string[] instructions_list = { "A", "BELL", "C", "CASE", "CH", "CLRS", "CUR", "DEF", "E", "END", "ERASTR",
+                                            "HOLD", "INMAX", "J", "LF", "M", "MC", "R", "RESET", "SAVE", "T", "TNR", "U", "WAIT" };
 
     bool run;
 
@@ -67,9 +64,10 @@ public class Interpreter
 
     string? error;
 
-    /***********************/
-    /* INTERPRETER SECTION */
-    /***********************/
+    
+    /*******************/
+    /* PROGRAM SECTION */
+    /*******************/
     public Interpreter()
     {
         run = false;
@@ -90,7 +88,145 @@ public class Interpreter
         error = null;
     }
 
-    public void Reset()
+    /*
+     * Main entry point
+     */
+    public void Start()
+    {
+        var restore_fgcolor = Console.ForegroundColor;
+        var restore_bgcolor = Console.BackgroundColor;
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.BackgroundColor = ConsoleColor.Black;
+
+        Console.WriteLine("************************************");
+        Console.WriteLine("* PILOT INTERPRETER                *");
+        Console.WriteLine("*                                  *");
+        Console.WriteLine("* COMMANDS : LOAD, LIST, RUN, EXIT *");
+        Console.WriteLine("************************************");
+
+        while (true)//TODO: REWRITE TO AVOID LIST == LISTATO ( use equals + get head token )
+        {
+            Console.Write(":>");
+
+            string input = Console.ReadLine() ?? "";
+
+            input = input.Trim();
+
+            string command = GetHeadToken(input);
+
+            if (string.IsNullOrEmpty(command)) { continue; }
+
+            //LIST
+            if (command.ToUpper().Equals("LIST"))
+            {
+                if (!command.Equals(input)) { Console.WriteLine(command + " does not expect parameters"); continue; }
+
+                List();
+
+                continue;
+            }
+
+            //LOAD
+            if (command.ToUpper().Equals("LOAD"))
+            {
+                string param = input[command.Length..].Trim();
+
+                if (String.IsNullOrEmpty(param)) { Console.WriteLine("Missing or invalid file name"); continue; }
+
+                if (!File.Exists(param)) { Console.WriteLine("File does not exist : " + param); continue; }
+
+                Init();
+
+                Load(param);
+
+                continue;
+            }
+
+            //SAVE
+            if (command.ToUpper().Equals("SAVE"))
+            {
+                string param = input[command.Length..].Trim();
+
+                if (String.IsNullOrEmpty(param)) { Console.WriteLine("Missing or invalid file name"); continue; }
+
+                Save(param);
+
+                continue;
+            }
+
+            //RUN
+            if (command.ToUpper().Equals("RUN"))
+            {
+                if (!command.Equals(input)) { Console.WriteLine(command + " does not expect parameters"); continue; }
+
+                List<string> _lines = lines;//save loaded lines
+
+                Init();
+
+                lines = _lines;//restore saved lines
+
+                Parse();
+                if (error != null) { Console.WriteLine(error); continue; }
+
+                Run();
+                if (error != null) { Console.WriteLine(error); continue; }
+
+                continue;
+            }
+
+            //RESET
+            if (command.ToUpper().Equals("RESET"))
+            {
+                if (!command.Equals(input)) { Console.WriteLine(command + " does not expect parameters"); continue; }
+
+                Init();
+
+                continue;
+            }
+
+            //EXIT
+            if (command.ToUpper().Equals("EXIT"))
+            {
+                if (!command.Equals(input)) { Console.WriteLine(command + " does not expect parameters"); continue; }
+
+                break;
+            }
+
+            //is line insertion ?
+            if (int.TryParse(command, out int num))
+            {
+                num--;
+
+                if (num < 0) { Console.WriteLine("Invalid line number : " + num); continue; }
+
+                string param = input[command.Length..];
+
+                int count = num - (lines.Count - 1);//how many empty lines to add
+
+                for (int i = 0; i < count; i++)
+                {
+                    lines.Add("");
+                }
+
+                lines[num] = param.TrimStart();
+
+                continue;
+            }
+
+            //DEFAULT CONDITION IS AN ERROR
+            Console.WriteLine("Unknow command : " + command);
+
+        }
+
+        Console.ForegroundColor = restore_fgcolor;
+        Console.BackgroundColor = restore_bgcolor;
+    }
+
+    /*
+     * Clear the entire interpreter
+     */
+    public void Init()
     {
         run = false;
         pc = 0;
@@ -110,16 +246,42 @@ public class Interpreter
         error= null;
     }
 
+    /*
+     * List current loaded lines
+     */
+    public void List()
+    {
+        for (int i = 0; i < lines.Count; i++)
+        {
+            Console.WriteLine((i + 1).ToString("000") + "|" + lines[i]); ;
+        }
+    }
+
+    /*
+     * Load a file into the interpreter lines
+     */
     public void Load(string file)
     {
-        Reset();
-
+        Init();
         lines = new List<string>(File.ReadAllLines(file));
     }
 
+    /*
+     * Save the lines of code to a file
+     */
+    public void Save(string file)
+    {
+        File.WriteAllLines(file, lines);
+    }
+
+    /*
+     * Parse the interpreter lines and build the array o instructions.
+     * Also initialize all the labels
+     */
     public void Parse()
     {
         pc = 0;
+        error = null;
 
         foreach (string line in lines)
         {
@@ -140,8 +302,9 @@ public class Interpreter
 
     }
 
-    //run the current loaded instructions
-    //if something weird happen error will be set 
+    /*
+     * Execute the current list of instructions
+     */
     public void Run()
     {
         pc = 0;
@@ -156,294 +319,15 @@ public class Interpreter
 
             ExecuteInstruction(ins);
         }
-    }
-
-    //list current instructions loaded
-    public void List()
-    {
-        for (int i = 0; i < lines.Count; i++)
-        {
-            Console.WriteLine(i+1 + "|" + lines[i]);
-        }
-    }
-
-    public void Start()
-    {
-        var restore_fgcolor = Console.ForegroundColor;
-        var restore_bgcolor = Console.BackgroundColor;
-
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.BackgroundColor = ConsoleColor.Black;
-
-        Console.WriteLine("************************************");
-        Console.WriteLine("* PILOT INTERPRETER                *");
-        Console.WriteLine("*                                  *");
-        Console.WriteLine("* COMMANDS : LOAD, LIST, RUN, EXIT *");
-        Console.WriteLine("************************************");
-
-        while(true)//TODO: REWRITE TO AVOID LIST == LISTATO ( use equals + get head token )
-        {
-            Console.Write(":>");
-
-            string input = Console.ReadLine() ?? "";
-
-            input = input.Trim();
-
-            string command = GetHeadToken(input);
-
-            if(string.IsNullOrEmpty(command)) { continue; }
-
-            //LOAD
-            if (command.ToUpper().Equals("LOAD"))
-            {
-                string param = input[command.Length..].Trim();
-
-                if (String.IsNullOrEmpty(param)) { Console.WriteLine("Missing or invalid file name"); continue; }
-
-                if(!File.Exists(param)) { Console.WriteLine("File does not exist : " + param); continue;  }
-                
-                Load(param);
-
-                continue;
-            }
-
-            //RUN
-            if (command.ToUpper().Equals("RUN"))
-            {
-                if(!command.Equals(input)) { Console.WriteLine(command + " does not expect parameters"); continue; }
-
-                Parse();
-                if(error != null) { Console.WriteLine(error); continue; }
-
-                Run();
-                if (error != null) { Console.WriteLine(error); continue; }
-
-                continue;
-            }
-
-            //LIST
-            if (command.ToUpper().Equals("LIST"))
-            {
-                if (!command.Equals(input)) { Console.WriteLine(command + " dos not expect parameters"); continue; }
-
-                List();
-                
-                continue;
-            }
-            
-            //RESET
-            if (command.ToUpper().Equals("RESET"))
-            {
-                if (!command.Equals(input)) { Console.WriteLine(command + " dos not expect parameters"); continue; }
-
-                Reset();
-                
-                continue;
-            }
-
-            //EXIT
-            if (command.ToUpper().Equals("EXIT"))
-            {
-                if (!command.Equals(input)) { Console.WriteLine(command + " dos not expect parameters"); continue; }
-
-                break;
-            }
-
-            //is line insertion ?
-            /*if (int.TryParse(command, out int num))
-            {
-                num--;
-
-                if(num<0) { Console.WriteLine("Invalid line number : " + num); continue; }
-
-                string param = input[command.Length..];
-
-                Console.WriteLine(lines.Count);
-                Console.WriteLine(num);
-                Console.WriteLine(num - lines.Count);
-                if (num>=lines.Count)
-                {
-                    for (int i = 0; i <= num - lines.Count; i++)
-                    {
-                        lines.Add("");
-                    }
-
-                    lines.Add(param);
-
-                    continue;
-                }
-
-                lines.RemoveAt(num);
-                lines.Insert(num, param);
-
-                continue;
-            }*/
-
-            //DEFAULT CONDITION IS AN ERROR
-            Console.WriteLine("Unknow command : " + command);
-
-        }
-
-        Console.ForegroundColor = restore_fgcolor;
-        Console.BackgroundColor = restore_bgcolor;
-    }
-
-    /*****************/
-    /* UTILS SECTION */
-    /*****************/
-
-    public void DumpVars()//REMOVE ME AFTER DEBUG
-    {
-        Console.WriteLine("**********");
-
-        foreach (KeyValuePair<string, float> pair in num_vars)
-        {
-
-            Console.WriteLine(pair.Key + " : " + pair.Value);
-        }
-
-        foreach (KeyValuePair<string, string> pair in str_vars)
-        {
-            Console.WriteLine(pair.Key + " : " + pair.Value);
-        }
-    }
-
-    public string GetHeadToken(string str)
-    {
-        if (String.IsNullOrEmpty(str)) { return ""; }
-
-        string s = "";
-        int i = 0;
-        while(i<str.Length && !Char.IsWhiteSpace(str[i]))
-        {
-            s += str[i];
-            i++;
-        }
-
-        return s;
-    }
-
-    Instruction ParseInstruction(string str)
-    {
-        Instruction ins = new();
-
-        if (String.IsNullOrEmpty(str.Trim())) { return ins; };//empty line
-
-        str = str.TrimStart();
-
-        string token = GetHeadToken(str);
-
-        if (token.Length < 2) { SyntaxError("Invalid label or instruction"); return ins; }//error
-
-        if (token[0] == '*')//label 
-        {
-            if (!token.Equals(str.TrimEnd())){ SyntaxError("Invalid label found"); return ins;  }
-
-            ins.label = token;
-            return ins;
-        }
-        else if(token[^1] == ':')//instruction
-        {
-            ins.type = token[..^1];
-
-            //we have condition !
-            if (ins.type.Length > 1)
-            {
-                if (ins.type[^1] == 'Y') { ins.cond = true;  ins.type = ins.type[..^1]; }
-                if (ins.type[^1] == 'N') { ins.cond = false; ins.type = ins.type[..^1]; } 
-            }
-
-            if(!instructions_list.Contains(ins.type)) { SyntaxError("Unknow instruction found : " + ins.type); return ins;  }
-
-            ins.body = str[token.Length..];//get the body
-
-            return ins;
-        }
-        else//error
-        {
-            SyntaxError("Invalid label or instruction"); 
-            return ins;
-        }
-    }
-
-    public string FormatString(string str)//TODO : REWRITE
-    {
-        int index = 0;
-        string s = "";
-
-        // EXAMPLES :
-        // T: ## --> #
-        // T: #NUMBER --> stampa il valore della variabile NUMBER
-        // T: ###NUMBER --> #123
-        // T: ##NUMBER --> #NUMBER
-        // T: ### --> # + ERRORE
-        while (index < str.Length)
-        {
-            if ((index + 1 < str.Length) && (str[index] == '#' || str[index] == '$'))
-            {
-                if (str[index] == str[index + 1])//double ##
-                {
-                    s += str[index];//symbol
-                    index += 2;
-                    continue;
-                }
-                else// single # it is a variable
-                {
-                    int end = index;
-                    while (end < str.Length && !Char.IsWhiteSpace(str[end]))
-                    { end++; }
-
-                    string label = str[index..end];
-
-                    if (label.Length == 1) { RuntimeError("Missing label"); }
-
-                    if (num_vars.ContainsKey(label))//is numeric ?
-                    {
-                        s += num_vars[label];
-                    }
-                    else if (str_vars.ContainsKey(label))//is string ?
-                    {
-                        s += str_vars[label];
-                    }
-                    else
-                    {
-                        RuntimeError("Label not found : " + label);//is an error :-)
-                    }
-
-                    index = end;
-                    continue;
-                }
-
-            }
-
-            //identifier at last position
-            if (index == str.Length - 1 && (str[index] == '#' || str[index] == '$'))
-            {
-                RuntimeError("Missing label");
-            }
-
-            s += str[index];
-            index++;
-        }
-
-        return s;
-    }
-
-    void SyntaxError(string str)
-    {
-        if(error==null) { error = "Syntax Error : " + (pc + 1) + "|" + str; }
-    }
-
-    void RuntimeError(string str)
-    {
-        if (error == null) { error = "Runtime Error : " + ( pc + 1) + "|" + str; }
-    }
-
+    }    
 
     /*********************/
     /* FUNCTIONS SECTION */
     /*********************/
 
+    /*
+     * Just choose which instruction to execute based on ins.type
+     */
     void ExecuteInstruction(Instruction ins)
     {
         if (ins.type == null) { pc++; return; }
@@ -476,10 +360,6 @@ public class Interpreter
                 Execute_CLRS(ins);
                 break;
 
-            case "CPM":
-                Execute_CPM(ins);
-                break;
-
             case "CUR":
                 Execute_CUR(ins);
                 break;
@@ -488,16 +368,8 @@ public class Interpreter
                 Execute_DEF(ins);
                 break;
 
-            case "DI":
-                Execute_DI(ins);
-                break;
-
             case "E":
                 Execute_E(ins);
-                break;
-
-            case "EI":
-                Execute_EI(ins);
                 break;
 
             case "END":
@@ -506,14 +378,6 @@ public class Interpreter
 
             case "ERASTR":
                 Execute_ERASTR(ins);
-                break;
-
-            case "ESC":
-                Execute_ESC(ins);
-                break;
-
-            case "EXIST":
-                Execute_EXIST(ins);
                 break;
 
             case "HOLD":
@@ -540,20 +404,8 @@ public class Interpreter
                 Execute_MC(ins);
                 break;
 
-            case "OUT":
-                Execute_OUT(ins);
-                break;
-
-            case "PR":
-                Execute_PR(ins);
-                break;
-
             case "R":
                 Execute_R(ins);
-                break;
-
-            case "RESET":
-                Execute_RESET(ins);
                 break;
 
             case "SAVE":
@@ -701,22 +553,12 @@ public class Interpreter
         pc++;
     }
 
-    void Execute_CPM(Instruction ins)
-    {
-        RuntimeError("Instruction not available : " + ins.type);
-    }
-
     void Execute_CUR(Instruction ins)
     {
         RuntimeError("Instruction not implemented : " + ins.type);
     }
 
     void Execute_DEF(Instruction ins)
-    {
-        RuntimeError("Instruction not implemented : " + ins.type);
-    }
-
-    void Execute_DI(Instruction ins)
     {
         RuntimeError("Instruction not implemented : " + ins.type);
     }
@@ -730,11 +572,6 @@ public class Interpreter
         pc++;
     }
 
-    void Execute_EI(Instruction ins)
-    {
-        RuntimeError("Instruction not implemented : " + ins.type);
-    }
-
     void Execute_END(Instruction ins)
     {
         run = false;
@@ -743,16 +580,6 @@ public class Interpreter
     void Execute_ERASTR(Instruction ins)
     {
         RuntimeError("Instruction not implemented : " + ins.type);
-    }
-
-    void Execute_ESC(Instruction ins)
-    {
-        RuntimeError("Instruction not implemented : " + ins.type);
-    }
-
-    void Execute_EXIST(Instruction ins)
-    {
-        RuntimeError("Instruction not available : " + ins.type);
     }
 
     void Execute_HOLD(Instruction ins)
@@ -862,24 +689,9 @@ public class Interpreter
         RuntimeError("Instruction not implemented : " + ins.type);
     }
 
-    void Execute_OUT(Instruction ins)
-    {
-        RuntimeError("Instruction not available : " + ins.type);
-    }
-
-    void Execute_PR(Instruction ins)
-    {
-        RuntimeError("Instruction not available : " + ins.type);
-    }
-
     void Execute_R(Instruction ins)
     {
         pc++;
-    }
-
-    void Execute_RESET(Instruction ins)
-    {
-        RuntimeError("Instruction not implemented : " + ins.type);
     }
 
     void Execute_SAVE(Instruction ins)
@@ -927,5 +739,160 @@ public class Interpreter
     void Execute_WAIT(Instruction ins)
     {
         RuntimeError("Instruction not implemented : " + ins.type);
+    }
+
+    /*****************/
+    /* UTILS SECTION */
+    /*****************/
+
+    /*
+     * Given a string return a substring from beggining to first 'Whitespace' character
+     */
+    public string GetHeadToken(string str)
+    {
+        if (String.IsNullOrEmpty(str)) { return ""; }
+
+        string s = "";
+        int i = 0;
+        while (i < str.Length && !Char.IsWhiteSpace(str[i]))
+        {
+            s += str[i];
+            i++;
+        }
+
+        return s;
+    }
+
+    /*
+     * Given a line plit it to tokens and build a struct of type Instruction
+     * Can set error, otherwise error will be null
+     */
+    Instruction ParseInstruction(string str)
+    {
+        Instruction ins = new();
+
+        if (String.IsNullOrEmpty(str.Trim())) { return ins; };//empty line
+
+        str = str.TrimStart();
+
+        string token = GetHeadToken(str);
+
+        if (token.Length < 2) { SyntaxError("Invalid label or instruction"); return ins; }//error
+
+        if (token[0] == '*')//label 
+        {
+            if (!token.Equals(str.TrimEnd())) { SyntaxError("Invalid label found"); return ins; }
+
+            ins.label = token;
+            return ins;
+        }
+        else if (str.Contains(':'))//instruction
+        {
+            int end = str.IndexOf(':');
+            ins.type = str[..end];
+
+            //we have condition !
+            if (ins.type.Length > 1)
+            {
+                if (ins.type[^1] == 'Y' || ins.type[^1] == 'y') { ins.cond = true; ins.type = ins.type[..^1]; }
+                if (ins.type[^1] == 'N' || ins.type[^1] == 'n') { ins.cond = false; ins.type = ins.type[..^1]; }
+            }
+
+            if (!instructions_list.Contains(ins.type.ToUpper())) { SyntaxError("Unknow instruction found : " + ins.type); return ins; }
+
+            //we have body ?
+            if (end + 1 < str.Length) { ins.body = str[(end + 1)..]; }//get the body
+
+            return ins;
+        }
+        else//error
+        {
+            SyntaxError("Invalid label or instruction");
+            return ins;
+        }
+    }
+
+    /*
+     * Given a string format using Pilot language directives
+     */
+    public string FormatString(string str)//TODO : REVWRITE ME !!!
+    {
+        int index = 0;
+        string s = "";
+
+        // EXAMPLES :
+        // T: ## --> #
+        // T: #NUMBER --> stampa il valore della variabile NUMBER
+        // T: ###NUMBER --> #123
+        // T: ##NUMBER --> #NUMBER
+        // T: ### --> # + ERRORE
+        while (index < str.Length)
+        {
+            if ((index + 1 < str.Length) && (str[index] == '#' || str[index] == '$'))
+            {
+                if (str[index] == str[index + 1])//double ##
+                {
+                    s += str[index];//symbol
+                    index += 2;
+                    continue;
+                }
+                else// single # it is a variable
+                {
+                    int end = index;
+                    while (end < str.Length && !Char.IsWhiteSpace(str[end]))
+                    { end++; }
+
+                    string label = str[index..end];
+
+                    if (label.Length == 1) { RuntimeError("Missing label"); }
+
+                    if (num_vars.ContainsKey(label))//is numeric ?
+                    {
+                        s += num_vars[label];
+                    }
+                    else if (str_vars.ContainsKey(label))//is string ?
+                    {
+                        s += str_vars[label];
+                    }
+                    else
+                    {
+                        RuntimeError("Label not found : " + label);//is an error :-)
+                    }
+
+                    index = end;
+                    continue;
+                }
+
+            }
+
+            //identifier at last position
+            if (index == str.Length - 1 && (str[index] == '#' || str[index] == '$'))
+            {
+                RuntimeError("Missing label");
+            }
+
+            s += str[index];
+            index++;
+        }
+
+        return s;
+    }
+
+    /*
+     * If error is not already set (null), set it !!!
+     * Call it if parsing.
+     */
+    void SyntaxError(string str)
+    {
+        if (error == null) { error = "Syntax Error : " + (pc + 1) + "|" + str; }
+    }
+
+    /*
+     * If error is not already set (null), set it !!!
+     * Call it if Running
+     */
+    void RuntimeError(string str)
+    {
+        if (error == null) { error = "Runtime Error : " + (pc + 1) + "|" + str; }
     }
 }
