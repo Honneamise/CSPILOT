@@ -1,14 +1,16 @@
-﻿T: insert first number
-A: #A
+﻿T: insert option
+A: #number
 
-T: insert second number
-A: #B
+CASE: #number *Uno,*uno, *tre
 
-T: you inserted #A and #B
+*Uno
+T: Uno
+END:
 
-C: #RESULT1 = #A * #B
+*uno
+T: uno
+END:
 
-
-T: result is : #RESULT1 
-
+*tre
+T: tre
 END:

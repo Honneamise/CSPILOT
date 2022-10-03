@@ -22,4 +22,5 @@ Some few differences from the original PILOT of 1984 :
 
 ## DEVELOPMENT NOTES: 
 
-- Should the program RUN if we have detected error with LOAD ?
+- TODO : make variable names NOT case sensitive
+- TODO : add instructions templates for PILOT language

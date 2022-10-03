@@ -1,8 +1,6 @@
 ﻿namespace Pilot;
 
 using Expression;
-using System.Data;
-using System.Net;
 
 /**********/
 public class Instruction
@@ -99,11 +97,7 @@ public class Interpreter
         Console.ForegroundColor = ConsoleColor.Green;
         Console.BackgroundColor = ConsoleColor.Black;
 
-        Console.WriteLine("************************************");
-        Console.WriteLine("* PILOT INTERPRETER                *");
-        Console.WriteLine("*                                  *");
-        Console.WriteLine("* COMMANDS : LOAD, LIST, RUN, EXIT *");
-        Console.WriteLine("************************************");
+        Usage();
 
         while (true)//TODO: REWRITE TO AVOID LIST == LISTATO ( use equals + get head token )
         {
@@ -116,6 +110,26 @@ public class Interpreter
             string command = GetHeadToken(input);
 
             if (string.IsNullOrEmpty(command)) { continue; }
+
+            //HELP
+            if (command.ToUpper().Equals("HELP"))
+            {
+                if (!command.Equals(input)) { Console.WriteLine(command + " does not expect parameters"); continue; }
+
+                Usage();
+
+                continue;
+            }
+
+            //CLEAR
+            if (command.ToUpper().Equals("CLEAR"))
+            {
+                if (!command.Equals(input)) { Console.WriteLine(command + " does not expect parameters"); continue; }
+
+                Console.Clear();
+
+                continue;
+            }
 
             //LIST
             if (command.ToUpper().Equals("LIST"))
@@ -221,6 +235,21 @@ public class Interpreter
 
         Console.ForegroundColor = restore_fgcolor;
         Console.BackgroundColor = restore_bgcolor;
+    }
+
+    public void Usage()
+    {
+        Console.WriteLine("******************************************");
+        Console.WriteLine("* PILOT INTERPRETER                      *");
+        Console.WriteLine("* HELP        : this menu                *");
+        Console.WriteLine("* CLEAR       : clear the console        *");
+        Console.WriteLine("* LIST        : show current program     *");
+        Console.WriteLine("* LOAD <file> : load program into memory *");
+        Console.WriteLine("* SAVE <file> : save program to disk     *");
+        Console.WriteLine("* RESET       : clear current program    *");
+        Console.WriteLine("* RUN         : run current program      *");
+        Console.WriteLine("* EXIT        : exit                     *");
+        Console.WriteLine("******************************************");
     }
 
     /*
@@ -539,7 +568,25 @@ public class Interpreter
 
     void Execute_CASE(Instruction ins)
     {
-        RuntimeError("Instruction not implemented : " + ins.type);
+        string str = ins.body.Trim();
+
+        string var = GetHeadToken(str);
+
+        if(!num_vars.ContainsKey(var)) { RuntimeError("Variable not found : " + var); return; }
+
+        str = str[var.Length..].TrimStart();
+
+        string[] options = str.Split(',');
+
+        int selected = (int)num_vars[var] - 1;
+
+        selected = Math.Clamp(selected, 0, options.Length-1);//limit
+
+        string label = options[selected].Trim();
+
+        if (!labels.ContainsKey(label)) { RuntimeError("Label not found : " + label); return; }
+
+        pc = labels[label];
     }
 
     void Execute_CH(Instruction ins)
@@ -815,62 +862,54 @@ public class Interpreter
     /*
      * Given a string format using Pilot language directives
      */
-    public string FormatString(string str)//TODO : REVWRITE ME !!!
+    public string FormatString(string str)
     {
         int index = 0;
         string s = "";
 
         // EXAMPLES :
         // T: ## --> #
-        // T: #NUMBER --> stampa il valore della variabile NUMBER
+        // T: #NUMBER --> 123
         // T: ###NUMBER --> #123
         // T: ##NUMBER --> #NUMBER
-        // T: ### --> # + ERRORE
+        // T: #### --> ##
+        // T: ### --> ##
         while (index < str.Length)
         {
-            if ((index + 1 < str.Length) && (str[index] == '#' || str[index] == '$'))
+            //double symbol 
+            if ( (index + 1 < str.Length) && (str[index] == str[index + 1]) && (str[index] == '#' || str[index] == '$') )
             {
-                if (str[index] == str[index + 1])//double ##
-                {
-                    s += str[index];//symbol
-                    index += 2;
-                    continue;
-                }
-                else// single # it is a variable
-                {
-                    int end = index;
-                    while (end < str.Length && !Char.IsWhiteSpace(str[end]))
-                    { end++; }
-
-                    string label = str[index..end];
-
-                    if (label.Length == 1) { RuntimeError("Missing label"); }
-
-                    if (num_vars.ContainsKey(label))//is numeric ?
-                    {
-                        s += num_vars[label];
-                    }
-                    else if (str_vars.ContainsKey(label))//is string ?
-                    {
-                        s += str_vars[label];
-                    }
-                    else
-                    {
-                        RuntimeError("Label not found : " + label);//is an error :-)
-                    }
-
-                    index = end;
-                    continue;
-                }
-
+                s += str[index];
+                index += 2;
+                continue;
             }
 
-            //identifier at last position
-            if (index == str.Length - 1 && (str[index] == '#' || str[index] == '$'))
+            //single symbol
+            if ( (index + 1 < str.Length) && (str[index] == '#' || str[index] == '$') )
             {
-                RuntimeError("Missing label");
-            }
+                int end = index;
+                while (end < str.Length && !Char.IsWhiteSpace(str[end])) { end++; }
 
+                string label = str[index..end];
+
+                if (num_vars.ContainsKey(label))//is numeric ?
+                {
+                    s += num_vars[label];
+                }
+                else if (str_vars.ContainsKey(label))//is string ?
+                {
+                    s += str_vars[label];
+                }
+                else
+                {
+                    RuntimeError("Label not found : " + label);//is an error :-)
+                }
+
+                index = end;
+                continue;
+            }
+            
+            //default append
             s += str[index];
             index++;
         }
