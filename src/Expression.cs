@@ -190,7 +190,7 @@ public static class Expression
                     break;
 
                 default://is a number
-                    if (!float.TryParse(tokens[count], out float f)) { return null; }
+                    if (!float.TryParse(tokens[count], out float f)) { return null; }//parsing failed
                     stack.Push(f);
                     break;
             }

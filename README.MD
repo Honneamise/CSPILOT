@@ -15,6 +15,7 @@ You can find a pdf copy in the doc folder
 
 Some few differences from the original PILOT of 1984 :
 
+- Labels must be the only element of a line
 - Instruction names are acceptect both LOWERCASE or UPPERCASE
 - Float values are valid for numeric variables
 - Compute instruction require the '#' prefix for every numeric variable 
