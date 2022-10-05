@@ -1,8 +1,56 @@
 ﻿namespace Pilot;
 
 using Expression;
+using System.Runtime.InteropServices;
 
-/**********/
+/***********************/
+/* LAYOUT CLASS        *
+ * NOTE : WINDOWS ONLY */
+/***********************/
+public static class Layout
+{
+    public static readonly int COLS = 80;
+    public static readonly int ROWS = 25;
+        
+    public static bool IsWindows;
+
+    const int MF_BYCOMMAND = 0x00000000;
+    const int SC_MINIMIZE = 0xF020;
+    const int SC_MAXIMIZE = 0xF030;
+    const int SC_SIZE = 0xF000;
+
+    [DllImport("user32.dll")]
+    public static extern int DeleteMenu(IntPtr hMenu, int nPosition, int wFlags);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetSystemMenu(IntPtr hWnd, bool bRevert);
+
+    [DllImport("kernel32.dll", ExactSpelling = true)]
+    private static extern IntPtr GetConsoleWindow();
+
+    /*
+     * If at runtime we are on windows set the console 80x25
+     * NOTE : needed for cursor functions in interpreter
+     */
+    public static void Init()
+    {
+        IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+        if (IsWindows)
+        {
+            Console.SetWindowSize(COLS, ROWS);
+            Console.SetBufferSize(COLS, ROWS);
+
+            DeleteMenu(GetSystemMenu(GetConsoleWindow(), false), SC_MINIMIZE, MF_BYCOMMAND);
+            DeleteMenu(GetSystemMenu(GetConsoleWindow(), false), SC_MAXIMIZE, MF_BYCOMMAND);
+            DeleteMenu(GetSystemMenu(GetConsoleWindow(), false), SC_SIZE, MF_BYCOMMAND);
+        }
+    }
+}
+
+/*********************/
+/* INSTRUCTION CLASS */
+/*********************/
 public class Instruction
 {
     public string? label;
@@ -18,27 +66,12 @@ public class Instruction
         body  = "";
     }
 
-    public override string ToString()//REMOVE AFTER DEBUG
-    {
-        string str = "\n**********";
-
-        str += "\nLabel:";
-        str += label ?? "null";
-
-        str += "\nType:";
-        str += type ?? "null";
-
-        str += "\nCond:";
-        str += (cond==null) ? "null" : cond;
-
-        str += "\nBody:";
-
-        return str;
-    }
 }
 
-/**********/
-public class Interpreter
+/***************************/
+/* PILOT INTERPRETER CLASS */
+/***************************/
+public class Pilot
 {
     readonly int STACK_SIZE = 512;
     readonly string[] instructions_list = { "A", "BELL", "C", "CASE", "CH", "CLRS", "CUR", "DEF", "E", "END", "ERASTR",
@@ -63,10 +96,10 @@ public class Interpreter
     string? error;
 
     
-    /*******************/
-    /* PROGRAM SECTION */
-    /*******************/
-    public Interpreter()
+    /*****************/
+    /* PILOT SECTION */
+    /*****************/
+    public Pilot()
     {
         run = false;
         pc = 0;
@@ -97,7 +130,12 @@ public class Interpreter
         Console.ForegroundColor = ConsoleColor.Green;
         Console.BackgroundColor = ConsoleColor.Black;
 
-        Usage();
+        Console.WriteLine("******************************************");
+        Console.WriteLine("* PILOT INTERPRETER (H)                  *");
+        Console.WriteLine("* Vers. 2022 by Honny                    *");
+        Console.WriteLine("*                                        *");
+        Console.WriteLine("* Type HELP for commands list            *");
+        Console.WriteLine("******************************************");
 
         while (true)//TODO: REWRITE TO AVOID LIST == LISTATO ( use equals + get head token )
         {
@@ -112,7 +150,7 @@ public class Interpreter
             if (string.IsNullOrEmpty(command)) { continue; }
 
             //HELP
-            if (command.ToUpper().Equals("HELP"))
+            if (command.Equals("HELP"))
             {
                 if (!command.Equals(input)) { Console.WriteLine(command + " does not expect parameters"); continue; }
 
@@ -121,8 +159,22 @@ public class Interpreter
                 continue;
             }
 
+            //MANUAL
+            if (command.Equals("MANUAL"))
+            {
+                if (!command.Equals(input)) { Console.WriteLine(command + " does not expect parameters"); continue; }
+
+                if (!File.Exists("res/MANUAL.TXT")) { Console.WriteLine("Manual file not found"); continue; }
+                
+                Console.Clear();
+                
+                Manual();
+
+                continue;
+            }
+
             //CLEAR
-            if (command.ToUpper().Equals("CLEAR"))
+            if (command.Equals("CLEAR"))
             {
                 if (!command.Equals(input)) { Console.WriteLine(command + " does not expect parameters"); continue; }
 
@@ -132,17 +184,20 @@ public class Interpreter
             }
 
             //LIST
-            if (command.ToUpper().Equals("LIST"))
+            if (command.Equals("LIST"))
             {
                 if (!command.Equals(input)) { Console.WriteLine(command + " does not expect parameters"); continue; }
 
+                if( lines.Count <= 0) { continue; }
+
+                Console.Clear();
                 List();
 
                 continue;
             }
 
             //LOAD
-            if (command.ToUpper().Equals("LOAD"))
+            if (command.Equals("LOAD"))
             {
                 string param = input[command.Length..].Trim();
 
@@ -158,7 +213,7 @@ public class Interpreter
             }
 
             //SAVE
-            if (command.ToUpper().Equals("SAVE"))
+            if (command.Equals("SAVE"))
             {
                 string param = input[command.Length..].Trim();
 
@@ -170,9 +225,11 @@ public class Interpreter
             }
 
             //RUN
-            if (command.ToUpper().Equals("RUN"))
+            if (command.Equals("RUN"))
             {
                 if (!command.Equals(input)) { Console.WriteLine(command + " does not expect parameters"); continue; }
+
+                Console.Clear();
 
                 List<string> _lines = lines;//save loaded lines
 
@@ -190,7 +247,7 @@ public class Interpreter
             }
 
             //RESET
-            if (command.ToUpper().Equals("RESET"))
+            if (command.Equals("RESET"))
             {
                 if (!command.Equals(input)) { Console.WriteLine(command + " does not expect parameters"); continue; }
 
@@ -200,7 +257,7 @@ public class Interpreter
             }
 
             //EXIT
-            if (command.ToUpper().Equals("EXIT"))
+            if (command.Equals("EXIT"))
             {
                 if (!command.Equals(input)) { Console.WriteLine(command + " does not expect parameters"); continue; }
 
@@ -228,7 +285,7 @@ public class Interpreter
                 continue;
             }
 
-            //DEFAULT CONDITION IS AN ERROR
+            //default condition is an error
             Console.WriteLine("Unknow command : " + command);
 
         }
@@ -240,8 +297,8 @@ public class Interpreter
     public void Usage()
     {
         Console.WriteLine("******************************************");
-        Console.WriteLine("* PILOT INTERPRETER                      *");
         Console.WriteLine("* HELP        : this menu                *");
+        Console.WriteLine("* MANUAL      : short PILOT manual       *");
         Console.WriteLine("* CLEAR       : clear the console        *");
         Console.WriteLine("* LIST        : show current program     *");
         Console.WriteLine("* LOAD <file> : load program into memory *");
@@ -280,10 +337,48 @@ public class Interpreter
      */
     public void List()
     {
-        for (int i = 0; i < lines.Count; i++)
+        int index = 0;
+
+        while(index < lines.Count)
         {
-            Console.WriteLine((i + 1).ToString("000") + "|" + lines[i]); ;
+            int count = 0;
+            while (index < lines.Count && count< (Console.WindowHeight-1))
+            {
+                Console.WriteLine((index + 1).ToString("000") + "|" + lines[index]); ;
+                index++;
+                count++;
+            }
+
+            if(index >= lines.Count) { return; }
+            Console.ReadKey();
+            
         }
+
+    }
+
+    /*
+     * Print the manual
+     */
+    public void Manual()
+    {
+        int index = 0;
+
+        List<string>text = new List<string>(File.ReadAllLines("res/MANUAL.TXT"));
+
+        while (index < text.Count)
+        {
+            int count = 0;
+            while (index < text.Count && count < (Console.WindowHeight - 1))
+            {
+                Console.WriteLine(text[index]); ;
+                index++;
+                count++;
+            }
+
+            if (index >= text.Count) { return; }
+            Console.ReadKey();
+        }
+
     }
 
     /*
@@ -348,11 +443,12 @@ public class Interpreter
 
             ExecuteInstruction(ins);
         }
-    }    
+    }
 
     /*********************/
     /* FUNCTIONS SECTION */
     /*********************/
+    /* NOTE : if a function will create a LABEL, or VARIABLE check if with FormatIsValid function */
 
     /*
      * Just choose which instruction to execute based on ins.type
@@ -363,7 +459,7 @@ public class Interpreter
 
         if (ins.cond != null && ins.cond != match) { pc++; return; }
 
-        switch (ins.type.ToUpper())
+        switch (ins.type)
         {
             case "A":
                 Execute_A(ins);
@@ -466,25 +562,23 @@ public class Interpreter
 
     void Execute_A(Instruction ins)
     {
+        //always save the user input
+        string? input = Console.ReadLine()?.Trim();
+        accept = input ?? "";
+
         string param = ins.body.Trim();
 
-        //simple accepts, no body parameters
-        if (String.IsNullOrEmpty(param))
+        //we have parameters in the body of the instruction
+        if (!String.IsNullOrEmpty(param))
         {
-            string? input = Console.ReadLine()?.Trim();
+            if (!FormatIsValid(param)) { RuntimeError("Invalid parameter format : " + param); return; }
 
-            accept = input ?? "";
-        }
-        else//body have parameters
-        {
             if (param[0]=='#' && param.Length>1)//it is a numeric variable
             {
                 float num;
 
                 while(true)//repeat until valid user input
                 {
-                    string? input = Console.ReadLine()?.Trim();
-
                     if(!String.IsNullOrEmpty(input) && float.TryParse(input, out float _num))
                     {
                         num = _num;
@@ -498,14 +592,13 @@ public class Interpreter
             }
             else if (param[0] == '$' && param.Length > 1)//it is a string variable
             {
-                string? input = Console.ReadLine()?.Trim();
-
                 str_vars[param] = input ?? "";
 
             }
             else//error uknow variable type
             {
                 RuntimeError("Invalid parameter : " + param);
+                return;
             }
         }
 
@@ -522,18 +615,20 @@ public class Interpreter
     {
         string str = ins.body.Trim();
 
-        if (String.IsNullOrEmpty(str)) { RuntimeError("Missing compute statement"); }
+        if (String.IsNullOrEmpty(str)) { RuntimeError("Missing compute statement"); return; }
 
         //get assign variable
         int end = str.IndexOf('=');
 
-        if (str[0]!='#' || end==-1 || end==str.Length-1) { RuntimeError("Invalid compute statement"); }
+        if (str[0]!='#' || end==-1 || end==str.Length-1) { RuntimeError("Invalid compute statement"); return; }
 
         string var_name = str[..end].Trim();
 
+        if (!FormatIsValid(var_name)) { RuntimeError("Invalid variable format"); return; }
+
         //get infix expression
         string infix = str[(end+1)..];
-        if (String.IsNullOrEmpty(infix)) { RuntimeError("Invalid compute statement"); }
+        if (String.IsNullOrEmpty(infix)) { RuntimeError("Invalid compute statement"); return; }
 
         //infix to postfix
         string postfix = Expression.InfixToPostfix(infix);
@@ -545,7 +640,7 @@ public class Interpreter
         {
             if(token.Length>1 && token[0]=='#')
             {
-                if (!num_vars.ContainsKey(token)) { RuntimeError("Variable not found : " + token); }
+                if (!num_vars.ContainsKey(token)) { RuntimeError("Variable not found : " + token); return; }
                 else { postfix += num_vars[token]; }
             }
             else
@@ -591,7 +686,23 @@ public class Interpreter
 
     void Execute_CH(Instruction ins)
     {
-        RuntimeError("Instruction not implemented : " + ins.type);
+        string str = ins.body.Trim();
+
+        string file = GetHeadToken(str);
+
+        if (String.IsNullOrEmpty(file)) { RuntimeError("File name not found."); return; }
+
+        if (!file.Equals(str.TrimEnd())) { RuntimeError("File does not match line"); return; }
+
+        if (!File.Exists(file)) { RuntimeError("File not found : " + file); return; }
+
+        Init();
+        
+        Load(file);
+        
+        Parse();
+
+        Run();
     }
 
     void Execute_CLRS(Instruction ins)
@@ -602,17 +713,43 @@ public class Interpreter
 
     void Execute_CUR(Instruction ins)
     {
-        RuntimeError("Instruction not implemented : " + ins.type);
+        if (!Layout.IsWindows) { RuntimeError("Function available only on Windows platform"); return; }
+
+        string[]  coords = ins.body.Split(',');
+
+        if (coords.Length != 2) { RuntimeError("Too many parameters"); return; }
+
+        //parse x
+        if (!int.TryParse(coords[0], out int x)) { RuntimeError("Invalid x parameter : " + coords[0]); return; }
+        //parse x
+        if (!int.TryParse(coords[1], out int y)) { RuntimeError("Invalid y parameter : " + coords[1]); return; }
+
+        if (x < 0 || x >= 80) { RuntimeError("Parameter X out of range"); return; }
+
+        if (y < 0 || y >= 25) { RuntimeError("Parameter Y out of range"); return; }
+
+        Console.SetCursorPosition(x, y);
+
+        pc++;
+
     }
 
     void Execute_DEF(Instruction ins)
     {
-        RuntimeError("Instruction not implemented : " + ins.type);
+        string str = ins.body.TrimStart();
+
+        string var = GetHeadToken(str);
+
+        if(!FormatIsValid(var) || var[0]!='$') { RuntimeError("Invalid variable : " + var); return; }
+
+        str_vars[var] = str[var.Length..];
+
+        pc++;
     }
 
     void Execute_E(Instruction ins)
     {
-        if (routines.Count <= 0) { RuntimeError("Routine Stack Underflow"); }
+        if (routines.Count <= 0) { RuntimeError("Routine Stack Underflow"); return; }
 
         pc = routines.Pop();
 
@@ -626,7 +763,12 @@ public class Interpreter
 
     void Execute_ERASTR(Instruction ins)
     {
-        RuntimeError("Instruction not implemented : " + ins.type);
+        foreach(KeyValuePair <string,string>var in str_vars)
+        {
+            str_vars[var.Key] = "";
+        }
+
+        pc++;
     }
 
     void Execute_HOLD(Instruction ins)
@@ -654,9 +796,9 @@ public class Interpreter
     {
         string num_str = ins.body.Trim();
 
-        if (String.IsNullOrEmpty(num_str)) { RuntimeError("Missing parameter"); }
+        if (String.IsNullOrEmpty(num_str)) { RuntimeError("Missing parameter"); return; }
 
-        if (!uint.TryParse(num_str, out uint num) ) { RuntimeError("Invalid parameter : " + num_str); }
+        if (!uint.TryParse(num_str, out uint num) ) { RuntimeError("Invalid parameter : " + num_str); return; }
 
         for (int i = 0; i<num; i++)
         {
@@ -674,13 +816,14 @@ public class Interpreter
         if (String.IsNullOrEmpty(ins.body) || String.IsNullOrEmpty(ins.body.Trim())) 
         {
             RuntimeError("Missing match parameter");
+            return;
         }        
 
         if (ins.body.Trim()[0] == '$')//it is a label
         {
             string label = ins.body.Trim();
 
-            if (!str_vars.ContainsKey(label)) { RuntimeError("Label not found : " + label);  }
+            if (!str_vars.ContainsKey(label)) { RuntimeError("Label not found : " + label); return; }
 
             tokens =  str_vars[label].Split(',');
         }
@@ -752,6 +895,8 @@ public class Interpreter
 
         string str = FormatString(ins.body);
 
+        if(error!=null) {  return; }
+
         Console.WriteLine(str);
 
         pc++;
@@ -763,6 +908,8 @@ public class Interpreter
 
         string str = FormatString(ins.body);
 
+        if (error != null) { return; }
+
         Console.Write(str);
 
         pc++;
@@ -770,13 +917,13 @@ public class Interpreter
 
     void Execute_U(Instruction ins)
     {
-        if(routines.Count>=STACK_SIZE) { RuntimeError("Routine overflow"); }
+        if(routines.Count>=STACK_SIZE) { RuntimeError("Routine overflow"); return; }
 
         string label = ins.body.Trim();
 
-        if (String.IsNullOrEmpty(label)) { RuntimeError("Missing label"); }
+        if (String.IsNullOrEmpty(label)) { RuntimeError("Missing label"); return; }
 
-        if (!labels.ContainsKey(label)) { RuntimeError("Label not found"); }
+        if (!labels.ContainsKey(label)) { RuntimeError("Label not found : " + label); return; }
 
         routines.Push(pc);
 
@@ -791,6 +938,23 @@ public class Interpreter
     /*****************/
     /* UTILS SECTION */
     /*****************/
+
+    /*
+     * Given a string check for valid LABEL or VARIABLE : LETTERS(UPPERCASE),NUMBERS
+     */
+    public bool FormatIsValid(string str)
+    {
+        if(String.IsNullOrEmpty(str)) { return false; }
+
+        if ( !(str[0]=='*' || str[0]=='#' || str[0]=='$')) { return false; };
+
+        for(int i=1;i<str.Length;i++)
+        {
+            if (!((Char.IsLetter(str[i]) && Char.IsUpper(str[i])) || Char.IsNumber(str[i]))) { return false; }
+        }
+
+        return true;
+    }
 
     /*
      * Given a string return a substring from beggining to first 'Whitespace' character
@@ -828,7 +992,9 @@ public class Interpreter
 
         if (token[0] == '*')//label 
         {
-            if (!token.Equals(str.TrimEnd())) { SyntaxError("Invalid label found"); return ins; }
+            if (!FormatIsValid(token)) { SyntaxError("Invalid label format"); return ins; }//check for label all uppercase
+
+            if (!token.Equals(str.TrimEnd())) { SyntaxError("Label does not match line"); return ins; }//label is not alone
 
             ins.label = token;
             return ins;
@@ -841,11 +1007,15 @@ public class Interpreter
             //we have condition !
             if (ins.type.Length > 1)
             {
-                if (ins.type[^1] == 'Y' || ins.type[^1] == 'y') { ins.cond = true; ins.type = ins.type[..^1]; }
-                if (ins.type[^1] == 'N' || ins.type[^1] == 'n') { ins.cond = false; ins.type = ins.type[..^1]; }
+                if (!Char.IsUpper(ins.type[^1])) { SyntaxError("Invalid instruction format"); return ins; }//condition is lowercase
+            
+                if (ins.type[^1] == 'Y') { ins.cond = true; ins.type = ins.type[..^1]; }
+                if (ins.type[^1] == 'N') { ins.cond = false; ins.type = ins.type[..^1]; }
             }
 
-            if (!instructions_list.Contains(ins.type.ToUpper())) { SyntaxError("Unknow instruction found : " + ins.type); return ins; }
+            if (!ins.type.All(Char.IsUpper) ) { SyntaxError("Invalid instruction format"); return ins; }//ins type is lowercase
+
+            if (!instructions_list.Contains(ins.type)) { SyntaxError("Unknow instruction found : " + ins.type); return ins; }
 
             //we have body ?
             if (end + 1 < str.Length) { ins.body = str[(end + 1)..]; }//get the body
@@ -861,6 +1031,7 @@ public class Interpreter
 
     /*
      * Given a string format using Pilot language directives
+     * NOTE : can set error
      */
     public string FormatString(string str)
     {
@@ -890,19 +1061,22 @@ public class Interpreter
                 int end = index;
                 while (end < str.Length && !Char.IsWhiteSpace(str[end])) { end++; }
 
-                string label = str[index..end];
+                string var = str[index..end];
 
-                if (num_vars.ContainsKey(label))//is numeric ?
+                if (!FormatIsValid(var)) { RuntimeError("Invalid variable format : " + var); return s; }
+
+                if (num_vars.ContainsKey(var))//is numeric ?
                 {
-                    s += num_vars[label];
+                    s += num_vars[var];
                 }
-                else if (str_vars.ContainsKey(label))//is string ?
+                else if (str_vars.ContainsKey(var))//is string ?
                 {
-                    s += str_vars[label];
+                    s += str_vars[var];
                 }
                 else
                 {
-                    RuntimeError("Label not found : " + label);//is an error :-)
+                    RuntimeError("Variable not found : " + var);//is an error :-)
+                    return s;
                 }
 
                 index = end;
@@ -923,7 +1097,7 @@ public class Interpreter
      */
     void SyntaxError(string str)
     {
-        if (error == null) { error = "Syntax Error : " + (pc + 1) + "|" + str; }
+        if (error == null) { error = "SYNTAX ERROR : " + (pc + 1).ToString("000") + "|" + str; }
     }
 
     /*
@@ -932,6 +1106,6 @@ public class Interpreter
      */
     void RuntimeError(string str)
     {
-        if (error == null) { error = "Runtime Error : " + (pc + 1) + "|" + str; }
+        if (error == null) { error = "RUNTIME ERROR : " + (pc + 1).ToString("000") + "|" + str; }
     }
 }

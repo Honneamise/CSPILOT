@@ -1,0 +1,41 @@
+----------
+Condition: Y or N
+----------
+Label: *LABEL
+----------
+Variables: #NUMBER or $STRING
+----------
+A: Accept Answer
+A[COND]: 
+A[COND]: #NUMBER
+A[COND]: $STRING
+----------
+BELL: Alert user
+BELL[COND]:
+----------
+C: Compute
+C[COND]: #VAR = expression
+----------
+CASE: Determine action in each case
+CASE[COND]: #VARIABLE : *LABEL1,*LABEL2,etc...
+----------
+CH: Chain
+CH[COND]: filename
+----------
+CLRS: Clear screen
+CLRS[COND]:
+----------
+CUR: Set the cursor position
+CUR[COND]: posx,posy
+----------
+DEF: Define a string variable
+DEF[COND]: $VARIABLE
+----------
+E: End subroutine, return to main program
+E[COND]:
+----------
+END: End Pilot program
+E[COND]:
+----------
+ERASTR: Erase all string variables
+ERASTR[COND]:

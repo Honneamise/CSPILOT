@@ -17,7 +17,7 @@ T: Please re-read the question and type just the single digit
 E:
 
 *MATCHACCEPT1
-M: 1
+M:1
 JY: *POLICY
 JN: *MATCHACCEPT2
 
@@ -42,15 +42,15 @@ TY: We do not sell documentation only
 J: *MOREQUESTIONS
 
 *MATCHACCEPT2
-M: 2 
+M:2
 TY: Sorry, the Current Inventory part of this program
 TY: has not yet been written
 JN: *MATCHACCEPT3
 J: *MOREQUESTIONS
 
 *MATCHACCEPT3
-TY: Sorry, the Customer Status part of this program
-TY: has not yet been written
+T: Sorry, the Customer Status part of this program
+T: has not yet been written
 J: *MOREQUESTIONS
 
 *MOREQUESTIONS

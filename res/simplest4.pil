@@ -1,5 +1,9 @@
 
 *START
+C: #PRODUCTCOST = 0
+C: #SURCHARGE = 0
+C: #SHIP = 0
+C: #PRICE = 0
 
 T: What is the cost of the product ?
 A: #PRODUCTCOST
@@ -7,7 +11,7 @@ A: #PRODUCTCOST
 T: Which division is the product from ?
 T: A) Oakland
 T: B) New York
-T: Type the letterof your chouice
+T: Type the letter of your chouice
 A:
 M: B
 UY: *NYCHARGE
@@ -15,6 +19,11 @@ UY: *NYCHARGE
 C: #PRICE = #PRODUCTCOST + #SURCHARGE
 T: The price to charge for the product is #PRICE dollars
 
+DEF: $YES yes,y
+T: Do you nee to ask another price ?
+A:
+M: $YES
+JY: *START
 END:
 
 *NYCHARGE

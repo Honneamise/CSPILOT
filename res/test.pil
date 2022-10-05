@@ -1,16 +1,11 @@
-﻿T: insert option
-A: #number
+﻿T: What's your answer ?
+*ANSWER
+A: $ANSWER
+M: ok
 
-CASE: #number *Uno,*uno, *tre
+TN: try again ?
+ERASTRN:
+JN: *ANSWER
+T: OK
 
-*Uno
-T: Uno
-END:
-
-*uno
-T: uno
-END:
-
-*tre
-T: tre
 END:
