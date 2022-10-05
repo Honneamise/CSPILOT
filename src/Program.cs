@@ -5,7 +5,7 @@ using System.Text;
 
 public class Program
 {
-
+    /* TESTING !!! */
     static string MegaReadLine()
     {
         StringBuilder buf = new();
@@ -43,19 +43,14 @@ public class Program
 
     public static void Main(string[] args)
     {
-        while (true)
-        {
-            MegaReadLine();
-        }
-
-        /*
+        
         CultureInfo.CurrentCulture = new CultureInfo("en-US");
 
         Layout.Init();
 
         Pilot pilot = new();
 
-        pilot.Start();*/
+        pilot.Start();
 
     }
 }
