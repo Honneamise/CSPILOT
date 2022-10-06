@@ -21,8 +21,6 @@ INSTRUCTION[CONDITION]:[PARAMETERS]
 
 - The optional heading label of instructions has been removed
 
-- Any arbitrary number of leading or trailing blanks is allowed between elements, except between INS[COND] if COND is present
-
 - Instructions, Conditions, Labels and Variables must be UPPERCASE
 
 - Floats are valid as value for Numeric Variables
@@ -35,13 +33,15 @@ CASE: #VARIABLE *LABEL1, *LABEL2, *LABEL3, etc...
 
 - The COMPUTE instruction have mandatory __'#'__ prefix for every numeric variable involved
 
-- The functions for the cursor are available only on windows platform
+- The CUR function is available only on windows platform
+
+- The ESC function can be used anywhere in the program
+
+- The RESET function will reset only the numeric variables that have already been created
 
 - CP/M instructions are not available
 
 ## DEVELOPMENT NOTES: 
-
-- TODO : ideas for alternative Console.readlin ???
 
 - TODO : complete the PILOT instructions
 

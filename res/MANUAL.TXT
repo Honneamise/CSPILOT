@@ -1,9 +1,9 @@
 ----------
-Condition: Y or N
+COND: Y or N
 ----------
-Label: *LABEL
+LABEL: *LABEL
 ----------
-Variables: #NUMBER or $STRING
+VARIABLES: #NUMBER or $STRING
 ----------
 A: Accept Answer
 A[COND]: 
@@ -17,7 +17,7 @@ C: Compute
 C[COND]: #VAR = expression
 ----------
 CASE: Determine action in each case
-CASE[COND]: #VARIABLE : *LABEL1,*LABEL2,etc...
+CASE[COND]: #VARIABLE *LABEL1,*LABEL2,etc...
 ----------
 CH: Chain
 CH[COND]: filename
@@ -31,11 +31,53 @@ CUR[COND]: posx,posy
 DEF: Define a string variable
 DEF[COND]: $VARIABLE
 ----------
+DI: Disable ESC key
+DI[COND]:
+----------
 E: End subroutine, return to main program
 E[COND]:
+----------
+EI: Enable ESC key
+EI[COND]:
 ----------
 END: End Pilot program
 E[COND]:
 ----------
 ERASTR: Erase all string variables
 ERASTR[COND]:
+----------
+ESC: Set ESC key routine
+ESC[COND]: *LABEL
+----------
+HOLD: Hold scroll
+HOLD[COND]:
+HOLD[COND]: *LABEL
+----------
+INMAX: Set max input line length
+INMAX[COND]: number
+----------
+J: Absolute Jump
+JUMP[COND]: *LABEL
+----------
+LF: Line Feed
+LF[COND]: number
+----------
+M: Match
+M[COND]: $STRING
+M[COND]: pattern1, pattern2,etc...
+----------
+MC: Match with commas
+MC[COND]: $STRING
+MC[COND]: pattern1, pattern2,etc...
+----------
+RESET: Set all numeric variables to 0
+RESET[COND]:
+----------
+SAVE: Save last user insertion
+SAVE[COND]: $STRING
+----------
+T: Print on screen
+T[COND]: text / #NUMBER / $STRING
+----------
+TNR: Same as T but without carriage return
+TNR[COND]: text

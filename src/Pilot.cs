@@ -2,6 +2,7 @@
 
 using Expression;
 using System.Runtime.InteropServices;
+using System.Text;
 
 /***********************/
 /* LAYOUT CLASS        *
@@ -74,8 +75,8 @@ public class Instruction
 public class Pilot
 {
     readonly int STACK_SIZE = 512;
-    readonly string[] instructions_list = { "A", "BELL", "C", "CASE", "CH", "CLRS", "CUR", "DEF", "E", "END", "ERASTR",
-                                            "HOLD", "INMAX", "J", "LF", "M", "MC", "R", "RESET", "SAVE", "T", "TNR", "U", "WAIT" };
+    readonly string[] instructions_list = { "A", "BELL", "C", "CASE", "CH", "CLRS", "CUR", "DEF", "DI", "E", "EI", "END", "ERASTR",
+                                            "ESC", "HOLD", "INMAX", "J", "LF", "M", "MC", "R", "RESET", "SAVE", "T", "TNR", "U", "WAIT" };
 
     bool run;
 
@@ -91,11 +92,13 @@ public class Pilot
     Stack<int> routines;
 
     string accept;
+    int accept_maxlen;
     bool match;
+    bool escape;
+    string? escape_label;
 
     string? error;
 
-    
     /*****************/
     /* PILOT SECTION */
     /*****************/
@@ -114,9 +117,171 @@ public class Pilot
         routines = new Stack<int>();
 
         accept = "";
+        accept_maxlen = Layout.COLS;
+
         match = false;
 
+        escape = true;
+        escape_label = null;
+
         error = null;
+    }
+
+    /*
+     * Clear the entire interpreter
+     */
+    public void Init()
+    {
+        run = false;
+        pc = 0;
+
+        lines = new List<string>();
+        instructions = new List<Instruction>();
+
+        labels = new Dictionary<string, int>();
+        num_vars = new Dictionary<string, float>();
+        str_vars = new Dictionary<string, string>();
+
+        routines = new Stack<int>();
+
+        accept = "";
+        match = false;
+
+        escape = true;
+        escape_label = null;
+
+        error = null;
+    }
+
+    /*
+     * Just print a short usage info
+     */
+    public void Usage()
+    {
+        Console.WriteLine("******************************************");
+        Console.WriteLine("* HELP        : this menu                *");
+        Console.WriteLine("* MANUAL      : short PILOT manual       *");
+        Console.WriteLine("* CLEAR       : clear the console        *");
+        Console.WriteLine("* LIST        : show current program     *");
+        Console.WriteLine("* LOAD <file> : load program into memory *");
+        Console.WriteLine("* SAVE <file> : save program to disk     *");
+        Console.WriteLine("* RESET       : clear current program    *");
+        Console.WriteLine("* RUN         : run current program      *");
+        Console.WriteLine("* EXIT        : exit                     *");
+        Console.WriteLine("******************************************");
+    }
+
+    /*
+     * List current loaded lines
+     */
+    public void List()
+    {
+        int index = 0;
+
+        while(index < lines.Count)
+        {
+            int count = 0;
+            while (index < lines.Count && count< (Console.WindowHeight-1))
+            {
+                Console.WriteLine((index + 1).ToString("000") + "|" + lines[index]); ;
+                index++;
+                count++;
+            }
+
+            if(index >= lines.Count) { return; }
+            Console.ReadKey(true);
+            
+        }
+
+    }
+
+    /*
+     * Print the manual
+     */
+    public void Manual()
+    {
+        int index = 0;
+
+        List<string>text = new List<string>(File.ReadAllLines("res/MANUAL.TXT"));
+
+        while (index < text.Count)
+        {
+            int count = 0;
+            while (index < text.Count && count < (Console.WindowHeight - 1))
+            {
+                Console.WriteLine(text[index]); ;
+                index++;
+                count++;
+            }
+
+            if (index >= text.Count) { return; }
+            Console.ReadKey(true);
+        }
+
+    }
+
+    /*
+     * Load a file into the interpreter lines
+     */
+    public void Load(string file)
+    {
+        Init();
+        lines = new List<string>(File.ReadAllLines(file));
+    }
+
+    /*
+     * Save the lines of code to a file
+     */
+    public void Save(string file)
+    {
+        File.WriteAllLines(file, lines);
+    }
+
+    /*
+     * Parse the interpreter lines and build the array o instructions.
+     * Also initialize all the labels
+     */
+    public void Parse()
+    {
+        pc = 0;
+        error = null;
+
+        foreach (string line in lines)
+        {
+            Instruction ins = ParseInstruction(line);
+
+            if(error != null) { break; }
+
+            instructions.Add(ins);
+
+            if (ins.label != null)
+            {
+                if (labels.ContainsKey(ins.label)) { SyntaxError("Duplicate label entry for : " + ins.label); break; }
+                else { labels[ins.label] = pc; }
+            }
+
+            pc++;
+        }
+
+    }
+
+    /*
+     * Execute the current list of instructions
+     */
+    public void Run()
+    {
+        pc = 0;
+        run = true;
+        error = null;
+
+        while (run && error == null)
+        {
+            if (pc < 0 || pc >= instructions.Count) { RuntimeError("Program counter out of range"); return; }
+
+            Instruction ins = instructions[pc];
+
+            ExecuteInstruction(ins);
+        }
     }
 
     /*
@@ -165,9 +330,9 @@ public class Pilot
                 if (!command.Equals(input)) { Console.WriteLine(command + " does not expect parameters"); continue; }
 
                 if (!File.Exists("res/MANUAL.TXT")) { Console.WriteLine("Manual file not found"); continue; }
-                
+
                 Console.Clear();
-                
+
                 Manual();
 
                 continue;
@@ -188,7 +353,7 @@ public class Pilot
             {
                 if (!command.Equals(input)) { Console.WriteLine(command + " does not expect parameters"); continue; }
 
-                if( lines.Count <= 0) { continue; }
+                if (lines.Count <= 0) { continue; }
 
                 Console.Clear();
                 List();
@@ -294,161 +459,76 @@ public class Pilot
         Console.BackgroundColor = restore_bgcolor;
     }
 
-    public void Usage()
-    {
-        Console.WriteLine("******************************************");
-        Console.WriteLine("* HELP        : this menu                *");
-        Console.WriteLine("* MANUAL      : short PILOT manual       *");
-        Console.WriteLine("* CLEAR       : clear the console        *");
-        Console.WriteLine("* LIST        : show current program     *");
-        Console.WriteLine("* LOAD <file> : load program into memory *");
-        Console.WriteLine("* SAVE <file> : save program to disk     *");
-        Console.WriteLine("* RESET       : clear current program    *");
-        Console.WriteLine("* RUN         : run current program      *");
-        Console.WriteLine("* EXIT        : exit                     *");
-        Console.WriteLine("******************************************");
-    }
-
-    /*
-     * Clear the entire interpreter
-     */
-    public void Init()
-    {
-        run = false;
-        pc = 0;
-
-        lines = new List<string>();
-        instructions = new List<Instruction>();
-
-        labels = new Dictionary<string, int>();
-        num_vars = new Dictionary<string, float>();
-        str_vars = new Dictionary<string, string>();
-
-        routines = new Stack<int>();
-
-        accept = "";
-        match = false;
-
-        error= null;
-    }
-
-    /*
-     * List current loaded lines
-     */
-    public void List()
-    {
-        int index = 0;
-
-        while(index < lines.Count)
-        {
-            int count = 0;
-            while (index < lines.Count && count< (Console.WindowHeight-1))
-            {
-                Console.WriteLine((index + 1).ToString("000") + "|" + lines[index]); ;
-                index++;
-                count++;
-            }
-
-            if(index >= lines.Count) { return; }
-            Console.ReadKey();
-            
-        }
-
-    }
-
-    /*
-     * Print the manual
-     */
-    public void Manual()
-    {
-        int index = 0;
-
-        List<string>text = new List<string>(File.ReadAllLines("res/MANUAL.TXT"));
-
-        while (index < text.Count)
-        {
-            int count = 0;
-            while (index < text.Count && count < (Console.WindowHeight - 1))
-            {
-                Console.WriteLine(text[index]); ;
-                index++;
-                count++;
-            }
-
-            if (index >= text.Count) { return; }
-            Console.ReadKey();
-        }
-
-    }
-
-    /*
-     * Load a file into the interpreter lines
-     */
-    public void Load(string file)
-    {
-        Init();
-        lines = new List<string>(File.ReadAllLines(file));
-    }
-
-    /*
-     * Save the lines of code to a file
-     */
-    public void Save(string file)
-    {
-        File.WriteAllLines(file, lines);
-    }
-
-    /*
-     * Parse the interpreter lines and build the array o instructions.
-     * Also initialize all the labels
-     */
-    public void Parse()
-    {
-        pc = 0;
-        error = null;
-
-        foreach (string line in lines)
-        {
-            Instruction ins = ParseInstruction(line);
-
-            if(error != null) { break; }
-
-            instructions.Add(ins);
-
-            if (ins.label != null)
-            {
-                if (labels.ContainsKey(ins.label)) { SyntaxError("Duplicate label entry for : " + ins.label); break; }
-                else { labels[ins.label] = pc; }
-            }
-
-            pc++;
-        }
-
-    }
-
-    /*
-     * Execute the current list of instructions
-     */
-    public void Run()
-    {
-        pc = 0;
-        run = true;
-        error = null;
-
-        while (run && error == null)
-        {
-            if (pc < 0 || pc >= instructions.Count) { RuntimeError("Program counter out of range"); return; }
-
-            Instruction ins = instructions[pc];
-
-            ExecuteInstruction(ins);
-        }
-    }
-
     /*********************/
     /* FUNCTIONS SECTION */
     /*********************/
     /* NOTE : if a function will create a LABEL, or VARIABLE check if with FormatIsValid function */
+
+    /*
+     * Read a string and handle ESC key accroding to PILOT rules
+     */
+    public string? PilotReadLine()
+    {
+        StringBuilder buf = new();
+
+        while (true && buf.Length<accept_maxlen)
+        {
+            var key = Console.ReadKey(true);
+
+            if (key.Key == ConsoleKey.Enter)
+            {
+                Console.WriteLine();
+                return buf.ToString();
+            }
+
+            else if (key.Key == ConsoleKey.Escape)//escape pressed
+            {
+                if (escape)//is escape enable ?
+                {
+                    if (escape_label != null)//is escape function set ?
+                    {
+                        if(labels.ContainsKey(escape_label))
+                        {
+                            routines.Push(pc);
+
+                            pc = labels[escape_label];//jump to escape function
+
+                            Console.WriteLine();//new line
+
+                            return null;
+                        }
+                        else//escape function not found
+                        {
+                            RuntimeError("Label for Escape function not found : " + escape_label);
+                            return null;
+                        }
+                    }
+                    else//interrupt readline and stop interpreter
+                    {
+                        run = false;
+                        return null;
+                    }
+                }
+            }
+
+            else if (key.Key == ConsoleKey.Backspace && buf.Length > 0)
+            {
+                buf.Remove(buf.Length - 1, 1);
+                Console.Write("\b \b");
+            }
+
+            else if (key.KeyChar != 0)
+            {
+                buf.Append(key.KeyChar);
+                Console.Write(key.KeyChar);
+            }
+
+        }
+
+        //exit because buffer is full ( set by INMAX )
+        Console.WriteLine();
+        return buf.ToString();
+    }
 
     /*
      * Just choose which instruction to execute based on ins.type
@@ -493,8 +573,16 @@ public class Pilot
                 Execute_DEF(ins);
                 break;
 
+            case "DI":
+                Execute_DI(ins);
+                break;
+
             case "E":
                 Execute_E(ins);
+                break;
+
+            case "EI":
+                Execute_EI(ins);
                 break;
 
             case "END":
@@ -503,6 +591,10 @@ public class Pilot
 
             case "ERASTR":
                 Execute_ERASTR(ins);
+                break;
+
+            case "ESC":
+                Execute_ESC(ins);
                 break;
 
             case "HOLD":
@@ -531,6 +623,10 @@ public class Pilot
 
             case "R":
                 Execute_R(ins);
+                break;
+
+            case "RESET":
+                Execute_RESET(ins);
                 break;
 
             case "SAVE":
@@ -563,8 +659,11 @@ public class Pilot
     void Execute_A(Instruction ins)
     {
         //always save the user input
-        string? input = Console.ReadLine()?.Trim();
-        accept = input ?? "";
+        string? input = PilotReadLine()?.Trim();
+
+        if(input == null) { accept = "";  return; }//input interrupted by user
+
+        accept = input;
 
         string param = ins.body.Trim();
 
@@ -592,7 +691,7 @@ public class Pilot
             }
             else if (param[0] == '$' && param.Length > 1)//it is a string variable
             {
-                str_vars[param] = input ?? "";
+                str_vars[param] = input;
 
             }
             else//error uknow variable type
@@ -702,7 +801,8 @@ public class Pilot
         
         Parse();
 
-        Run();
+        pc = 0;
+        run = true;
     }
 
     void Execute_CLRS(Instruction ins)
@@ -747,11 +847,29 @@ public class Pilot
         pc++;
     }
 
+    void Execute_DI(Instruction ins)
+    {
+        if(!String.IsNullOrEmpty(ins.body.Trim())) { RuntimeError("No parameters required"); return; }
+        
+        escape = false;
+
+        pc++;
+    }
+
     void Execute_E(Instruction ins)
     {
         if (routines.Count <= 0) { RuntimeError("Routine Stack Underflow"); return; }
 
         pc = routines.Pop();
+
+        pc++;
+    }
+
+    void Execute_EI(Instruction ins)
+    {
+        if (!String.IsNullOrEmpty(ins.body.Trim())) { RuntimeError("No parameters required"); return; }
+
+        escape = true;
 
         pc++;
     }
@@ -771,14 +889,63 @@ public class Pilot
         pc++;
     }
 
+    void Execute_ESC(Instruction ins)
+    {
+        string str = ins.body.Trim();
+
+        string label = GetHeadToken(str);
+
+        if (String.IsNullOrEmpty(label)) { RuntimeError("Missing Escape label"); return; }
+
+        if (!label.Equals(str.TrimEnd())) { RuntimeError("Escape label not match line"); return; }
+
+        escape_label = label;
+
+        pc++;
+    }
+
     void Execute_HOLD(Instruction ins)
     {
-        RuntimeError("Instruction not implemented : " + ins.type);
+        string str = ins.body.TrimStart();
+
+        string label = GetHeadToken(str);
+
+        if (!label.Equals(str.TrimEnd())) { RuntimeError("R label not match line"); return; }
+
+        while (true)
+        {
+            var key = Console.ReadKey(true);
+
+            if (key.Key == ConsoleKey.Enter)
+            {
+                pc++;
+                return;
+            }
+
+            else if (!String.IsNullOrEmpty(label) && (key.KeyChar == 'R' || key.KeyChar == 'r') )
+            {
+                routines.Push(pc);
+
+                pc = labels[label];
+
+                return;
+            }
+        }
     }
 
     void Execute_INMAX(Instruction ins)
     {
-        RuntimeError("Instruction not implemented : " + ins.type);
+        string str = ins.body.TrimStart();
+
+        string val_str = GetHeadToken(str);
+
+        if (!val_str.Equals(str.TrimEnd())) { RuntimeError("Parameter not match line"); return; }
+
+        if (!uint.TryParse(val_str, out uint val)) { RuntimeError("Invalid parameter : " + val_str); return; }
+
+        accept_maxlen = (int)val;
+
+        pc++;
     }
 
     void Execute_J(Instruction ins)
@@ -808,16 +975,19 @@ public class Pilot
         pc++;
     }
 
-    void Execute_M(Instruction ins)
+    /*
+     * Holder for both instruction M and MC
+     */
+    void _M(Instruction ins, char separator)
     {
         match = false;
         string[] tokens;
 
-        if (String.IsNullOrEmpty(ins.body) || String.IsNullOrEmpty(ins.body.Trim())) 
+        if (String.IsNullOrEmpty(ins.body) || String.IsNullOrEmpty(ins.body.Trim()))
         {
             RuntimeError("Missing match parameter");
             return;
-        }        
+        }
 
         if (ins.body.Trim()[0] == '$')//it is a label
         {
@@ -825,7 +995,7 @@ public class Pilot
 
             if (!str_vars.ContainsKey(label)) { RuntimeError("Label not found : " + label); return; }
 
-            tokens =  str_vars[label].Split(',');
+            tokens = str_vars[label].Split(separator);//split according to separator
         }
         else//parse the body
         {
@@ -867,16 +1037,20 @@ public class Pilot
             }
 
             //a match has been found
-            if(match==true) { break; }
+            if (match == true) { break; }
         }
 
         pc++;
+    }
 
+    void Execute_M(Instruction ins)
+    {
+        _M(ins, ',');
     }
 
     void Execute_MC(Instruction ins)
     {
-        RuntimeError("Instruction not implemented : " + ins.type);
+        _M(ins, '^');
     }
 
     void Execute_R(Instruction ins)
@@ -884,9 +1058,32 @@ public class Pilot
         pc++;
     }
 
+    void Execute_RESET(Instruction ins)
+    {
+        foreach (KeyValuePair<string, float> var in num_vars)
+        {
+            num_vars[var.Key] = 0.0f;
+        }
+
+        pc++;
+       
+    }
+
     void Execute_SAVE(Instruction ins)
     {
-        RuntimeError("Instruction not implemented : " + ins.type);
+        string str = ins.body.Trim();
+
+        string var_name = GetHeadToken(str);
+
+        if (String.IsNullOrEmpty(var_name)) { RuntimeError("Missing variable name"); return; }
+
+        if (!var_name.Equals(str.TrimEnd())) { RuntimeError("Label does not match line"); return; }
+
+        if(!str_vars.ContainsKey(var_name)) { RuntimeError("Label not found : " + var_name); return;  }
+
+        str_vars[var_name] = accept;
+
+        pc++;
     }
 
     void Execute_T(Instruction ins)
@@ -932,8 +1129,9 @@ public class Pilot
 
     void Execute_WAIT(Instruction ins)
     {
-        RuntimeError("Instruction not implemented : " + ins.type);
+        RuntimeError("NOT IMPLEMENTED"); return;
     }
+
 
     /*****************/
     /* UTILS SECTION */

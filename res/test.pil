@@ -1,11 +1,6 @@
-﻿T: What's your answer ?
-*ANSWER
-A: $ANSWER
-M: ok
-
-TN: try again ?
-ERASTRN:
-JN: *ANSWER
-T: OK
-
+﻿INMAX: 3
+T: Al prossimo giro faccio ASM
+A:
 END:
+
+
