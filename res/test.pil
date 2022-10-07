@@ -1,6 +1,9 @@
-﻿INMAX: 3
-T: Al prossimo giro faccio ASM
-A:
+﻿
+T: Hello, what is your name ?
+A: #NUMBER
+
+T: Hello #NUMBER
+
 END:
 
 

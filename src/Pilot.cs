@@ -685,6 +685,12 @@ public class Pilot
                     }
 
                     Console.WriteLine("WARNING : invalid input");
+
+                    input = PilotReadLine()?.Trim();
+
+                    if (input == null) { accept = ""; return; }//input interrupted by user
+
+                    accept = input;
                 }
                 
                 num_vars[param] = num;
@@ -1129,7 +1135,45 @@ public class Pilot
 
     void Execute_WAIT(Instruction ins)
     {
-        RuntimeError("NOT IMPLEMENTED"); return;
+        var start = DateTime.Now;
+
+        while ((DateTime.Now - start).TotalSeconds < 6 && !Console.KeyAvailable)
+        {
+            Thread.Sleep(100);
+        }
+
+        if(Console.KeyAvailable)
+        {
+            Execute_A(ins);
+        }
+        else
+        {
+            accept = "TIMEOUT";
+
+            string str = ins.body.TrimStart();
+
+            string var_name = GetHeadToken(str);
+
+            if (!String.IsNullOrEmpty(var_name)) //found something in the body
+            {
+                if (!var_name.Equals(str.TrimEnd())) { RuntimeError("Variable does not match line"); return; }
+
+                if (!FormatIsValid(var_name)) { RuntimeError("Invalid variable format : " + var_name); return; }
+
+                if (var_name[0]=='#')//numeric
+                {
+                    num_vars[var_name] = 0.0f;
+                }
+
+                if (var_name[0] == '$')//string
+                {
+                    str_vars[var_name] = "TIMEOUT";
+                }
+            }
+
+            pc++;
+        }
+
     }
 
 

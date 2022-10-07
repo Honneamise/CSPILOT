@@ -81,3 +81,8 @@ T[COND]: text / #NUMBER / $STRING
 ----------
 TNR: Same as T but without carriage return
 TNR[COND]: text
+----------
+WAIT: Accept answer timed out
+WAIT[COND]: 
+WAIT[COND]: #NUMBER
+WAIT[COND]: $STRING
