@@ -1,8 +1,8 @@
 ﻿
-T: Hello, what is your name ?
-A: #NUMBER
+T: Hello, insert a number in 6 seconds
+WAIT: #NUMBER
 
-T: Hello #NUMBER
+T: your number is #NUMBER
 
 END:
 

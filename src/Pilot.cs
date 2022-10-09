@@ -1,6 +1,8 @@
 ﻿namespace Pilot;
 
 using Expression;
+using System;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -183,7 +185,7 @@ public class Pilot
             int count = 0;
             while (index < lines.Count && count< (Console.WindowHeight-1))
             {
-                Console.WriteLine((index + 1).ToString("000") + "|" + lines[index]); ;
+                Console.WriteLine((index + 1).ToString("000") + " " + lines[index]); ;
                 index++;
                 count++;
             }
@@ -462,7 +464,7 @@ public class Pilot
     /*********************/
     /* FUNCTIONS SECTION */
     /*********************/
-    /* NOTE : if a function will create a LABEL, or VARIABLE check if with FormatIsValid function */
+    /* NOTE : if a function create a LABEL, or VARIABLE check it with the FormatIsValid function */
 
     /*
      * Read a string and handle ESC key accroding to PILOT rules
@@ -1133,7 +1135,7 @@ public class Pilot
         pc = labels[label];
     }
 
-    void Execute_WAIT(Instruction ins)
+    void _WAIT_Empty()
     {
         var start = DateTime.Now;
 
@@ -1142,40 +1144,124 @@ public class Pilot
             Thread.Sleep(100);
         }
 
-        if(Console.KeyAvailable)
+        if (Console.KeyAvailable)
         {
-            Execute_A(ins);
+            string? input = PilotReadLine()?.Trim();
+
+            if (input == null) { accept = ""; return; }//input interrupted by user
+
+            accept = input;
         }
         else
         {
             accept = "TIMEOUT";
-
-            string str = ins.body.TrimStart();
-
-            string var_name = GetHeadToken(str);
-
-            if (!String.IsNullOrEmpty(var_name)) //found something in the body
-            {
-                if (!var_name.Equals(str.TrimEnd())) { RuntimeError("Variable does not match line"); return; }
-
-                if (!FormatIsValid(var_name)) { RuntimeError("Invalid variable format : " + var_name); return; }
-
-                if (var_name[0]=='#')//numeric
-                {
-                    num_vars[var_name] = 0.0f;
-                }
-
-                if (var_name[0] == '$')//string
-                {
-                    str_vars[var_name] = "TIMEOUT";
-                }
-            }
-
-            pc++;
         }
 
+        pc++;
     }
 
+    void _WAIT_Number(string var_name)
+    {
+
+        bool valid = false;
+
+        do
+        {
+            var start = DateTime.Now;
+
+            while ((DateTime.Now - start).TotalSeconds < 6 && !Console.KeyAvailable)
+            {
+                Thread.Sleep(100);
+            }
+
+            if (Console.KeyAvailable)//key pressed in time
+            {
+                string? input = PilotReadLine()?.Trim();
+
+                if (input == null) { accept = ""; return; }//input interrupted by user
+
+                if (String.IsNullOrEmpty(input) || !float.TryParse(input, out float num))
+                {
+                    Console.WriteLine("WARNING : invalid input");
+                }
+                else
+                {
+                    accept = input;
+                    num_vars[var_name] = num;
+                    valid = true;
+                }
+            }
+            else //timeout
+            {
+                accept = "TIMEOUT";
+                num_vars[var_name] = 0;
+                valid = true;
+            }
+
+        }
+        while (!valid);
+
+        pc++;
+    }
+
+    void _WAIT_String(string var_name)
+    {
+        var start = DateTime.Now;
+
+        while ((DateTime.Now - start).TotalSeconds < 6 && !Console.KeyAvailable)
+        {
+            Thread.Sleep(100);
+        }
+
+        if (Console.KeyAvailable)
+        {
+            string? input = PilotReadLine()?.Trim();
+
+            if (input == null) { accept = ""; return; }//input interrupted by user
+
+            accept = input;
+            str_vars[var_name] = input;
+        }
+        else
+        {
+            accept = "TIMEOUT";
+            str_vars[var_name] = "TIMEOUT";
+        }
+
+        pc++;
+    }
+
+    void Execute_WAIT(Instruction ins)
+    {
+        //body is empty
+        if (String.IsNullOrEmpty(ins.body.Trim()))
+        {
+            _WAIT_Empty();
+            return;
+        }
+
+        //body have param, should be a VARIABLE
+        string str = ins.body.TrimStart();
+        string var_name = GetHeadToken(str);
+
+        //is valid ?
+        if (!var_name.Equals(str.TrimEnd())) { RuntimeError("Variable does not match line"); return; }
+        if (!FormatIsValid(var_name)) { RuntimeError("Invalid variable format : " + var_name); return; }
+
+        if (var_name[0] == '#')//numeric
+        {
+            _WAIT_Number(var_name);
+            return;
+        }
+
+        if (var_name[0] == '$')//string
+        {
+            _WAIT_String(var_name);
+            return;
+        }
+
+        RuntimeError("Runtime error");//we should never reach this point
+    }
 
     /*****************/
     /* UTILS SECTION */
@@ -1217,7 +1303,7 @@ public class Pilot
     }
 
     /*
-     * Given a line plit it to tokens and build a struct of type Instruction
+     * Given a line split it to tokens and build a struct of type Instruction
      * Can set error, otherwise error will be null
      */
     Instruction ParseInstruction(string str)
@@ -1339,7 +1425,7 @@ public class Pilot
      */
     void SyntaxError(string str)
     {
-        if (error == null) { error = "SYNTAX ERROR : " + (pc + 1).ToString("000") + "|" + str; }
+        if (error == null) { error = "SYNTAX ERROR Line " + (pc + 1).ToString("000") + " : " + str; }
     }
 
     /*
@@ -1348,6 +1434,6 @@ public class Pilot
      */
     void RuntimeError(string str)
     {
-        if (error == null) { error = "RUNTIME ERROR : " + (pc + 1).ToString("000") + "|" + str; }
+        if (error == null) { error = "RUNTIME ERROR Line " + (pc + 1).ToString("000") + " : " + str; }
     }
 }
