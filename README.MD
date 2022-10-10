@@ -41,8 +41,3 @@ CASE: #VARIABLE *LABEL1, *LABEL2, *LABEL3, etc...
 
 - CP/M instructions are not available
 
-## DEVELOPMENT NOTES: 
-
-- TODO : add support for 2 characters operators in expression evaluation
-
-- TODO : add expression evaluation in conditions
