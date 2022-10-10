@@ -1,5 +1,5 @@
 ----------
-COND: Y or N
+COND: Y or N or #VARIABLE
 ----------
 LABEL: *LABEL
 ----------

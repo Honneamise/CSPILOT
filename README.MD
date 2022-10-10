@@ -43,6 +43,6 @@ CASE: #VARIABLE *LABEL1, *LABEL2, *LABEL3, etc...
 
 ## DEVELOPMENT NOTES: 
 
-- TODO : complete the PILOT instructions
+- TODO : add support for 2 characters operators in expression evaluation
 
-- TODO : complete the MANUAL entries for PILOT instructions
+- TODO : add expression evaluation in conditions

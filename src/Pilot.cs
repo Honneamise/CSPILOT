@@ -58,7 +58,7 @@ public class Instruction
 {
     public string? label;
     public string? type;
-    public bool?   cond;
+    public string? cond;
     public string  body;
 
     public Instruction()
@@ -539,7 +539,33 @@ public class Pilot
     {
         if (ins.type == null) { pc++; return; }
 
-        if (ins.cond != null && ins.cond != match) { pc++; return; }
+        //evaluate condition
+        if (ins.cond != null)
+        {
+
+            //is boolean condition ?
+            if (ins.cond.Equals("Y") || ins.cond.Equals("N"))
+            {
+                if ((match == false && ins.cond.Equals("Y")) || (match == true && ins.cond.Equals("N")))
+                {
+                    pc++;
+                    return;
+                }
+            }
+
+            //is numeric ?
+            if (ins.cond[0] == '#')
+            {
+                if (!num_vars.ContainsKey(ins.cond)) { RuntimeError("Conditional variable not found"); return; }
+                else if ((int)num_vars[ins.cond] == 0)
+                {
+                    pc++;
+                    return;
+                }
+            }
+
+        }
+    
 
         switch (ins.type)
         {
@@ -1332,13 +1358,28 @@ public class Pilot
             int end = str.IndexOf(':');
             ins.type = str[..end];
 
-            //we have condition !
+            //we COULD have condition !
             if (ins.type.Length > 1)
             {
-                if (!Char.IsUpper(ins.type[^1])) { SyntaxError("Invalid instruction format"); return ins; }//condition is lowercase
-            
-                if (ins.type[^1] == 'Y') { ins.cond = true; ins.type = ins.type[..^1]; }
-                if (ins.type[^1] == 'N') { ins.cond = false; ins.type = ins.type[..^1]; }
+                int cond_start = ins.type.IndexOf('(');
+                int cond_end = ins.type.IndexOf(')');
+
+                if (ins.type[^1] == 'Y' || ins.type[^1] == 'N') //boolean condition
+                {
+                    ins.cond = "" + ins.type[^1];
+                    ins.type = ins.type[..^1];
+                }
+                else if (cond_start != -1 && cond_end != -1 && cond_start < cond_end)//variable condition 
+                {
+                    ins.cond = ins.type[(cond_start + 1)..cond_end];
+                    if (!FormatIsValid(ins.cond))
+                    {
+                        SyntaxError("Invalid condition format");
+                        return ins;
+                    }
+                    ins.type = ins.type[..cond_start];
+                }
+
             }
 
             if (!ins.type.All(Char.IsUpper) ) { SyntaxError("Invalid instruction format"); return ins; }//ins type is lowercase

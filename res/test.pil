@@ -1,9 +1,11 @@
 ﻿
-T: Hello, insert a number in 6 seconds
-WAIT: #NUMBER
+C: #COUNT = 3
 
-T: your number is #NUMBER
+*LOOP
+T: Hello n° #COUNT
+C: #COUNT = #COUNT - 1
+J(#COUNT): *LOOP
+
 
 END:
-
 
