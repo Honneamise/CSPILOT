@@ -1,11 +1,4 @@
-﻿
-C: #COUNT = 3
-
-*LOOP
-T: Hello n° #COUNT
-C: #COUNT = #COUNT - 1
-J(#COUNT): *LOOP
-
-
+﻿T:Hi what is your name ?
+A:$NAME
+T:Hello $NAME welcome to PILOT
 END:
-
