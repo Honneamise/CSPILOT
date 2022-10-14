@@ -1,0 +1,91 @@
+*START
+
+T: ******************************************
+T: *               CALCULATOR               *
+T: *                                        *
+T: *              Made by Klay4             *
+T: ******************************************
+LF: 2
+
+*START2
+
+C: #RIS = 0
+
+LF: 1
+T: Enter the first number:
+A: #N1
+T: Enter the second number:
+A: #N2
+LF: 1
+
+
+*WHICHMENU
+T: Choose one of the following operations:
+T:    1) Sum
+T:    2) Subtraction
+T:    3) Multiplication
+T:    4) Division
+A:
+M: 1 , 2 , 3 , 4
+JY: *MATCHACCEPT1
+UN: *ERRORINPUT
+J: *WHICHMENU
+
+*ERRORINPUT
+T: Im sorry, i need number 1,2, 3 or 4
+T: Please re-read the question and type just the single digit
+E:
+
+
+*MATCHACCEPT1
+M:1
+JY: *SUM
+JN: *MATCHACCEPT2
+
+*SUM
+C: #RIS =  #N1 + #N2
+T: Result: #RIS
+J: *MOREOPERATIONS
+
+
+*MATCHACCEPT2
+M:2
+JY: *SUB
+JN: *MATCHACCEPT3
+
+*SUB
+C: #RIS =  #N1 - #N2
+T: Result: #RIS
+J: *MOREOPERATIONS
+
+
+*MATCHACCEPT3
+M:3
+JY: *MOL
+J: *MATCHACCEPT4
+
+*MOL
+C: #RIS =  #N1 * #N2
+T: Result: #RIS
+J: *MOREOPERATIONS
+
+
+*MATCHACCEPT4
+M:4
+JY: *DIV
+J: *MOREOPERATIONS
+
+*DIV
+C: #RIS =  #N1 / #N2
+T: Result: #RIS
+J: *MOREOPERATIONS
+
+
+*MOREOPERATIONS
+LF: 1
+DEF: $YES yes,y
+T: You want to make other operations?
+A:
+M: $YES
+JY: *START2
+END:
