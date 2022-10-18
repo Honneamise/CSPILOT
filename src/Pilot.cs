@@ -160,17 +160,18 @@ public class Pilot
      */
     public void Usage()
     {
-        Console.WriteLine("******************************************");
-        Console.WriteLine("* HELP        : this menu                *");
-        Console.WriteLine("* MANUAL      : short PILOT manual       *");
-        Console.WriteLine("* CLEAR       : clear the console        *");
-        Console.WriteLine("* LIST        : show current program     *");
-        Console.WriteLine("* LOAD <file> : load program into memory *");
-        Console.WriteLine("* SAVE <file> : save program to disk     *");
-        Console.WriteLine("* RESET       : clear current program    *");
-        Console.WriteLine("* RUN         : run current program      *");
-        Console.WriteLine("* EXIT        : exit                     *");
-        Console.WriteLine("******************************************");
+        Console.WriteLine("**************************************************************");
+        Console.WriteLine("* HELP                   : this menu                         *");
+        Console.WriteLine("* MANUAL                 : short PILOT manual                *");
+        Console.WriteLine("* <number> <statement>   : insert statement at line number   *");
+        Console.WriteLine("* LIST                   : show current program              *");
+        Console.WriteLine("* CLEAR                  : clear the console                 *");
+        Console.WriteLine("* LOAD <file>            : load program into memory          *");
+        Console.WriteLine("* SAVE <file>            : save program to disk              *");
+        Console.WriteLine("* RESET                  : clear current program             *");
+        Console.WriteLine("* RUN                    : run current program               *");
+        Console.WriteLine("* EXIT                   : exit                              *");
+        Console.WriteLine("**************************************************************");
     }
 
     /*
