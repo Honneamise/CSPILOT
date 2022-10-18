@@ -1,4 +1,13 @@
-﻿T:Hi what is your name ?
-A:$NAME
-T:Hello $NAME welcome to PILOT
+﻿
+C: #LOOP = 3
+
+*REPEAT
+
+T: HELLO
+
+C: #LOOP = #LOOP - 1
+
+J(#LOOP) : *REPEAT
+
+
 END:

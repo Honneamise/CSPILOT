@@ -14,6 +14,7 @@ public static class Expression
 
             case '*':
             case '/':
+            case '%':
                 return 1;
 
             case '(':
@@ -188,6 +189,16 @@ public static class Expression
                         stack.Push(a / b);
                     }
                     break;
+
+                case "%":
+                    {
+                        float b = stack.Pop();
+                        float a = stack.Pop();
+
+                        stack.Push(a % b);
+                    }
+                    break;
+
 
                 default://is a number
                     if (!float.TryParse(tokens[count], out float f)) { return null; }//parsing failed

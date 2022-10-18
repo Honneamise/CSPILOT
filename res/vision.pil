@@ -1,0 +1,81 @@
+﻿ESC: *ASKFOREND
+
+C: #LIVES = 0
+
+*START
+CLRS:
+U: *PRINTSNAKY1
+HOLD: *START
+CLRS:
+
+
+*LOOP
+
+C: #X = 5
+C: #Y = 2 
+C: #POS = #Y * 80 + #X
+T: POS = #POS
+R: U: *POSCUR
+R: TNR: @
+
+END:
+
+
+
+*ASKFOREND
+CLRS:
+U: *PRINTSNAKY2
+T: Do you want to close the program ? [ Y / YES / S / SI / D / DA / A / ATE ]
+A:
+M: Y , YES , S , SI , D , DA , A , ATE
+JN:*START
+CLRS:
+U: *PRINTSNAKY2
+T:
+T: The only thing we have not to snacky is Snacky itself. See you soon.
+T: 
+END:
+
+*PRINTSNAKY1
+R: R = tasto segreto per incrementare le vite anche se non serve
+C: #LIVES = #LIVES + 1
+T: 
+T:       \\\\\\\\ \\\\   \\\  \\\\\    \\\\\\\ \\\  \\\ \\\   \\\
+T:       \███████ \███\  \██ \\█████\ \\██████ \██  \██ \██   \██
+T:       \██\\\\\ \████\ \██ \██   ██ \██      \██\\██   \██\\██
+T:       \███████ \██\██\\██ \███████ \██      \█████\    \████
+T:       \\\\\\██ \██ \██\██ \██   ██ \██\\\\\ \██ \██\    \██
+T:       \███████ \██  \████ \██   ██  \██████ \██  \██    \██    THE SNAKE
+T: 
+T:                    /^\/^\                Q - Up           2022 (V) vision4all
+T:                  _|O |O  |               A - Down
+T:                /~     \_/ \              O - Left
+T:               |__________/  \            P - Right
+T:                 \_______      \        ESC - END / RESTART
+T:                         `\     \
+T:  You have to eat          |     |                      \      LIVES : #LIVES
+T:   everything             /     /                        \\
+T:    so you can          /      /                          \ \
+T:     grow up           /     /                             \  \
+T:      more and       /     /             _-----_            \   \
+T:       more ...     /     /           _-~       ~-_         |   |
+T:                   (      (        _-~    _---_    ~-_     _/   |
+T:                    \      ~-____-~    _-~     ~-_    ~-_-~    /
+T:                      ~-_           _-~           ~-_       _-~
+T:                         ~--______-~                 ~-___-~
+T: 
+E:
+
+*PRINTSNAKY2
+T: 
+T:--------------------------------------------------------------------------------
+T:            _______..__   __.      ___       ______  __  ___ ____    ____ 
+T:           /       ||  \ |  |     /   \     /      ||  |/  / \   \  /   /  (V)
+T:          |   (----`|   \|  |    /  ^  \   |  ,----'|  '  /   \   \/   /  
+T:           \   \    |  . `  |   /  /_\  \  |  |     |    <     \_    _/   
+T:       .----)   |   |  |\   |  /  _____  \ |  `----.|  .  \      |  |     
+T:       |_______/    |__| \__| /__/     \__\ \______||__|\__\     |__|     
+T: 
+T:--------------------------------------------------------------------------------
+T: 
+E:

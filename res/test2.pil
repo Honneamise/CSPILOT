@@ -1,0 +1,15 @@
+R: demo for IF #X>80 THEN #X=0
+
+T: Insert a number
+A: #X
+
+C: #TEST = #X - 80
+
+U(#TEST): *OK
+
+C: #X = 0
+
+*OK
+T: X vale #X
+
+END:

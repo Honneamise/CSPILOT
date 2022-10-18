@@ -855,7 +855,7 @@ public class Pilot
 
         //parse x
         if (!int.TryParse(coords[0], out int x)) { RuntimeError("Invalid x parameter : " + coords[0]); return; }
-        //parse x
+        //parse y
         if (!int.TryParse(coords[1], out int y)) { RuntimeError("Invalid y parameter : " + coords[1]); return; }
 
         if (x < 0 || x >= 80) { RuntimeError("Parameter X out of range"); return; }

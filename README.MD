@@ -41,3 +41,8 @@ CASE: #VARIABLE *LABEL1, *LABEL2, *LABEL3, etc...
 
 - CP/M instructions are not available
 
+TODO :
+
+- Add to CUR function options for numeric variables es: CUR #X,#Y
+
+- 
