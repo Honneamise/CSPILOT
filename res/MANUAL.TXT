@@ -27,6 +27,7 @@ CLRS[COND]:
 ----------
 CUR: Set the cursor position
 CUR[COND]: posx,posy
+CUR[COND]: #VARIABLE,#VARIABLE
 ----------
 DEF: Define a string variable
 DEF[COND]: $VARIABLE

@@ -854,13 +854,30 @@ public class Pilot
 
         if (coords.Length != 2) { RuntimeError("Too many parameters"); return; }
 
-        //parse x
-        if (!int.TryParse(coords[0], out int x)) { RuntimeError("Invalid x parameter : " + coords[0]); return; }
-        //parse y
-        if (!int.TryParse(coords[1], out int y)) { RuntimeError("Invalid y parameter : " + coords[1]); return; }
+        int x = 0;
+        int y = 0;
+
+        coords[0] = coords[0].Trim();
+        coords[1] = coords[1].Trim();
+
+        if (FormatIsValid(coords[0]) && coords[0].StartsWith("#") && FormatIsValid(coords[1]) && coords[1].StartsWith("#"))
+        {
+            if (!num_vars.ContainsKey(coords[0])) { RuntimeError("Variable not found : " + coords[0]); return; }
+            if (!num_vars.ContainsKey(coords[1])) { RuntimeError("Variable not found : " + coords[1]); return; }
+
+            x = (int)num_vars[coords[0]];
+            y = (int)num_vars[coords[1]];
+        }
+        else
+        {
+            if (!int.TryParse(coords[0], out int _x)) { RuntimeError("Invalid x parameter : " + coords[0]); return; }
+            if (!int.TryParse(coords[1], out int _y)) { RuntimeError("Invalid y parameter : " + coords[1]); return; }
+
+            x = _x;
+            y = _y;
+        }
 
         if (x < 0 || x >= 80) { RuntimeError("Parameter X out of range"); return; }
-
         if (y < 0 || y >= 25) { RuntimeError("Parameter Y out of range"); return; }
 
         Console.SetCursorPosition(x, y);
