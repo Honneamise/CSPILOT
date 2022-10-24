@@ -40,9 +40,3 @@ CASE: #VARIABLE *LABEL1, *LABEL2, *LABEL3, etc...
 - The RESET function will reset only the numeric variables that have already been created
 
 - CP/M instructions are not available
-
-TODO :
-
-- Add to CUR function options for numeric variables es: CUR #X,#Y
-
-- 
