@@ -35,8 +35,19 @@ CASE: #VARIABLE *LABEL1, *LABEL2, *LABEL3, etc...
 
 - The CUR function is available only on windows platform
 
+- The CUR function accept also numeric variables as input
+
 - The ESC function can be used anywhere in the program
 
 - The RESET function will reset only the numeric variables that have already been created
 
 - CP/M instructions are not available
+
+## TODO
+
+- 1) Add function "DELAY: #NUMERIC"
+    - set the delay in seconds (accept decimal) for the functions WAIT and KEY
+
+- 2) Add function "KEY: $STRING"
+    - read a key and put the ascii code in the string
+    - if the timeout expire $STRING will be set to "TIMEOUT" ( as normal WAIT )
