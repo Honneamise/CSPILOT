@@ -34,20 +34,20 @@ CASE: #VARIABLE *LABEL1, *LABEL2, *LABEL3, etc...
 - The COMPUTE instruction have mandatory __'#'__ prefix for every numeric variable involved
 
 - The CUR function is available only on windows platform
-
-- The CUR function accept also numeric variables as input
+The CUR function accept also numeric variables as input
 
 - The ESC function can be used anywhere in the program
+
+- The KEYBOARD function give the user an amount of time to press a key.
+If a key is pressed by the end of time it is stored as a string, otherwise "TIMEOUT" will be stored.
+The inpu of KEYBOARD function can be tested with the MATCH instruction.
+
+- The INTERVAL function set the delay used by KEYBOARD and WAIT instructions in seconds (default delay 5 sec).
 
 - The RESET function will reset only the numeric variables that have already been created
 
 - CP/M instructions are not available
 
-## TODO
+## PERSONAL NOTES
 
-- 1) Add function "DELAY: #NUMERIC"
-    - set the delay in seconds (accept decimal) for the functions WAIT and KEY
-
-- 2) Add function "KEY: $STRING"
-    - read a key and put the ascii code in the string
-    - if the timeout expire $STRING will be set to "TIMEOUT" ( as normal WAIT )
+This is my first C# project, so code is not optimal.

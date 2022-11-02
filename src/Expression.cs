@@ -1,5 +1,3 @@
-using System.Runtime.InteropServices;
-
 namespace Expression;
 
 public static class Expression
@@ -48,8 +46,8 @@ public static class Expression
             {
                 while (count < str.Length && OperatorPrecedence(str[count]) == -1)
                 {
-                    if(!Char.IsWhiteSpace(str[count]))  postfix += str[count];
-                    
+                    if (!Char.IsWhiteSpace(str[count])) postfix += str[count];
+
                     count++;
                 }
                 postfix += ' ';
@@ -58,7 +56,7 @@ public static class Expression
             }
 
             //If the stack is empty or contains a left parenthesis on top, push the incoming operator on to the stack.
-            if (stack.Count==0 || stack.Peek() == '(')
+            if (stack.Count == 0 || stack.Peek() == '(')
             {
                 stack.Push(str[count]);
                 count++;
@@ -123,7 +121,7 @@ public static class Expression
         }
 
         //At the end of the expression, pop and print all the operators of the stack.
-        while (stack.Count!=0)
+        while (stack.Count != 0)
         {
             char c = stack.Pop();
 
@@ -134,7 +132,7 @@ public static class Expression
         return postfix;
     }
 
-   
+
     //null if error ( ex: division by 0 )
     public static float? Evaluate(String postfix)
     {

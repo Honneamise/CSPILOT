@@ -2,7 +2,6 @@
 
 using Expression;
 using System;
-using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -14,7 +13,7 @@ public static class Layout
 {
     public static readonly int COLS = 80;
     public static readonly int ROWS = 25;
-        
+
     public static bool IsWindows;
 
     const int MF_BYCOMMAND = 0x00000000;
@@ -59,14 +58,14 @@ public class Instruction
     public string? label;
     public string? type;
     public string? cond;
-    public string  body;
+    public string body;
 
     public Instruction()
     {
         label = null;
-        type  = null;
-        cond  = null;
-        body  = "";
+        type = null;
+        cond = null;
+        body = "";
     }
 
 }
@@ -78,7 +77,7 @@ public class Pilot
 {
     readonly int STACK_SIZE = 512;
     readonly string[] instructions_list = { "A", "BELL", "C", "CASE", "CH", "CLRS", "CUR", "DEF", "DI", "E", "EI", "END", "ERASTR",
-                                            "ESC", "HOLD", "INMAX", "J", "LF", "M", "MC", "R", "RESET", "SAVE", "T", "TNR", "U", "WAIT" };
+                                            "ESC", "HOLD", "KEYBOARD", "INMAX", "INTERVAL", "J", "LF", "M", "MC", "R", "RESET", "SAVE", "T", "TNR", "U", "WAIT" };
 
     bool run;
 
@@ -86,8 +85,8 @@ public class Pilot
 
     List<string> lines;
     List<Instruction> instructions;
-    Dictionary<string,int> labels;
-    
+    Dictionary<string, int> labels;
+
     Dictionary<string, float> num_vars;
     Dictionary<string, string> str_vars;
 
@@ -100,6 +99,8 @@ public class Pilot
     string? escape_label;
 
     string? error;
+
+    float delay;
 
     /*****************/
     /* PILOT SECTION */
@@ -127,6 +128,8 @@ public class Pilot
         escape_label = null;
 
         error = null;
+
+        delay = 5;
     }
 
     /*
@@ -181,19 +184,19 @@ public class Pilot
     {
         int index = 0;
 
-        while(index < lines.Count)
+        while (index < lines.Count)
         {
             int count = 0;
-            while (index < lines.Count && count< (Console.WindowHeight-1))
+            while (index < lines.Count && count < (Console.WindowHeight - 1))
             {
                 Console.WriteLine((index + 1).ToString("000") + " " + lines[index]); ;
                 index++;
                 count++;
             }
 
-            if(index >= lines.Count) { return; }
+            if (index >= lines.Count) { return; }
             Console.ReadKey(true);
-            
+
         }
 
     }
@@ -205,7 +208,7 @@ public class Pilot
     {
         int index = 0;
 
-        List<string>text = new List<string>(File.ReadAllLines("res/MANUAL.TXT"));
+        List<string> text = new List<string>(File.ReadAllLines("res/MANUAL.TXT"));
 
         while (index < text.Count)
         {
@@ -253,7 +256,7 @@ public class Pilot
         {
             Instruction ins = ParseInstruction(line);
 
-            if(error != null) { break; }
+            if (error != null) { break; }
 
             instructions.Add(ins);
 
@@ -474,7 +477,7 @@ public class Pilot
     {
         StringBuilder buf = new();
 
-        while (true && buf.Length<accept_maxlen)
+        while (true && buf.Length < accept_maxlen)
         {
             var key = Console.ReadKey(true);
 
@@ -490,7 +493,7 @@ public class Pilot
                 {
                     if (escape_label != null)//is escape function set ?
                     {
-                        if(labels.ContainsKey(escape_label))
+                        if (labels.ContainsKey(escape_label))
                         {
                             routines.Push(pc);
 
@@ -566,7 +569,6 @@ public class Pilot
             }
 
         }
-    
 
         switch (ins.type)
         {
@@ -630,8 +632,16 @@ public class Pilot
                 Execute_HOLD(ins);
                 break;
 
+            case "KEYBOARD":
+                Execute_KEYBOARD(ins);
+                break;
+
             case "INMAX":
                 Execute_INMAX(ins);
+                break;
+
+            case "INTERVAL":
+                Execute_INTERVAL(ins);
                 break;
 
             case "J":
@@ -690,7 +700,7 @@ public class Pilot
         //always save the user input
         string? input = PilotReadLine()?.Trim();
 
-        if(input == null) { accept = "";  return; }//input interrupted by user
+        if (input == null) { accept = ""; return; }//input interrupted by user
 
         accept = input;
 
@@ -701,13 +711,13 @@ public class Pilot
         {
             if (!FormatIsValid(param)) { RuntimeError("Invalid parameter format : " + param); return; }
 
-            if (param[0]=='#' && param.Length>1)//it is a numeric variable
+            if (param[0] == '#' && param.Length > 1)//it is a numeric variable
             {
                 float num;
 
-                while(true)//repeat until valid user input
+                while (true)//repeat until valid user input
                 {
-                    if(!String.IsNullOrEmpty(input) && float.TryParse(input, out float _num))
+                    if (!String.IsNullOrEmpty(input) && float.TryParse(input, out float _num))
                     {
                         num = _num;
                         break;
@@ -721,7 +731,7 @@ public class Pilot
 
                     accept = input;
                 }
-                
+
                 num_vars[param] = num;
             }
             else if (param[0] == '$' && param.Length > 1)//it is a string variable
@@ -754,14 +764,14 @@ public class Pilot
         //get assign variable
         int end = str.IndexOf('=');
 
-        if (str[0]!='#' || end==-1 || end==str.Length-1) { RuntimeError("Invalid compute statement"); return; }
+        if (str[0] != '#' || end == -1 || end == str.Length - 1) { RuntimeError("Invalid compute statement"); return; }
 
         string var_name = str[..end].Trim();
 
         if (!FormatIsValid(var_name)) { RuntimeError("Invalid variable format"); return; }
 
         //get infix expression
-        string infix = str[(end+1)..];
+        string infix = str[(end + 1)..];
         if (String.IsNullOrEmpty(infix)) { RuntimeError("Invalid compute statement"); return; }
 
         //infix to postfix
@@ -770,9 +780,9 @@ public class Pilot
         //substitute variables
         string[] tokens = postfix.Split(' ');
         postfix = "";
-        foreach(String token in tokens)
+        foreach (String token in tokens)
         {
-            if(token.Length>1 && token[0]=='#')
+            if (token.Length > 1 && token[0] == '#')
             {
                 if (!num_vars.ContainsKey(token)) { RuntimeError("Variable not found : " + token); return; }
                 else { postfix += num_vars[token]; }
@@ -788,7 +798,7 @@ public class Pilot
         //evaluate expression
         float? f = Expression.Evaluate(postfix);
 
-        if(f==null) { RuntimeError("Expression error"); return; }//should return
+        if (f == null) { RuntimeError("Expression error"); return; }//should return
 
         num_vars[var_name] = (float)f;
 
@@ -801,7 +811,7 @@ public class Pilot
 
         string var = GetHeadToken(str);
 
-        if(!num_vars.ContainsKey(var)) { RuntimeError("Variable not found : " + var); return; }
+        if (!num_vars.ContainsKey(var)) { RuntimeError("Variable not found : " + var); return; }
 
         str = str[var.Length..].TrimStart();
 
@@ -809,7 +819,7 @@ public class Pilot
 
         int selected = (int)num_vars[var] - 1;
 
-        selected = Math.Clamp(selected, 0, options.Length-1);//limit
+        selected = Math.Clamp(selected, 0, options.Length - 1);//limit
 
         string label = options[selected].Trim();
 
@@ -831,9 +841,9 @@ public class Pilot
         if (!File.Exists(file)) { RuntimeError("File not found : " + file); return; }
 
         Init();
-        
+
         Load(file);
-        
+
         Parse();
 
         pc = 0;
@@ -850,7 +860,7 @@ public class Pilot
     {
         if (!Layout.IsWindows) { RuntimeError("Function available only on Windows platform"); return; }
 
-        string[]  coords = ins.body.Split(',');
+        string[] coords = ins.body.Split(',');
 
         if (coords.Length != 2) { RuntimeError("Too many parameters"); return; }
 
@@ -892,7 +902,7 @@ public class Pilot
 
         string var = GetHeadToken(str);
 
-        if(!FormatIsValid(var) || var[0]!='$') { RuntimeError("Invalid variable : " + var); return; }
+        if (!FormatIsValid(var) || var[0] != '$') { RuntimeError("Invalid variable : " + var); return; }
 
         str_vars[var] = str[var.Length..];
 
@@ -901,8 +911,8 @@ public class Pilot
 
     void Execute_DI(Instruction ins)
     {
-        if(!String.IsNullOrEmpty(ins.body.Trim())) { RuntimeError("No parameters required"); return; }
-        
+        if (!String.IsNullOrEmpty(ins.body.Trim())) { RuntimeError("No parameters required"); return; }
+
         escape = false;
 
         pc++;
@@ -933,7 +943,7 @@ public class Pilot
 
     void Execute_ERASTR(Instruction ins)
     {
-        foreach(KeyValuePair <string,string>var in str_vars)
+        foreach (KeyValuePair<string, string> var in str_vars)
         {
             str_vars[var.Key] = "";
         }
@@ -974,7 +984,7 @@ public class Pilot
                 return;
             }
 
-            else if (!String.IsNullOrEmpty(label) && (key.KeyChar == 'R' || key.KeyChar == 'r') )
+            else if (!String.IsNullOrEmpty(label) && (key.KeyChar == 'R' || key.KeyChar == 'r'))
             {
                 routines.Push(pc);
 
@@ -983,6 +993,29 @@ public class Pilot
                 return;
             }
         }
+    }
+
+    void Execute_KEYBOARD(Instruction ins)
+    {
+        if (!String.IsNullOrEmpty(ins.body.Trim())) { RuntimeError("No parameters required"); return; }
+
+        var start = DateTime.Now;
+
+        while ((DateTime.Now - start).TotalSeconds < delay && !Console.KeyAvailable)
+        {
+            Thread.Sleep(100);
+        }
+
+        if (Console.KeyAvailable)
+        {
+            accept = "" + Console.ReadKey(true).Key;
+        }
+        else
+        {
+            accept = "TIMEOUT";
+        }
+
+        pc++;
     }
 
     void Execute_INMAX(Instruction ins)
@@ -1000,6 +1033,19 @@ public class Pilot
         pc++;
     }
 
+    void Execute_INTERVAL(Instruction ins)
+    {
+        string num_str = ins.body.Trim();
+
+        if (String.IsNullOrEmpty(num_str)) { RuntimeError("Missing parameter"); return; }
+
+        if (!float.TryParse(num_str, out float num)) { RuntimeError("Invalid parameter : " + num_str); return; }
+
+        delay = num;
+
+        pc++;
+    }
+
     void Execute_J(Instruction ins)
     {
         string label = ins.body.Trim();
@@ -1008,7 +1054,7 @@ public class Pilot
 
         if (labels.ContainsKey(label)) { pc = labels[label]; }
         else { RuntimeError("Label not found : " + label); }
-        
+
     }
 
     void Execute_LF(Instruction ins)
@@ -1017,9 +1063,9 @@ public class Pilot
 
         if (String.IsNullOrEmpty(num_str)) { RuntimeError("Missing parameter"); return; }
 
-        if (!uint.TryParse(num_str, out uint num) ) { RuntimeError("Invalid parameter : " + num_str); return; }
+        if (!uint.TryParse(num_str, out uint num)) { RuntimeError("Invalid parameter : " + num_str); return; }
 
-        for (int i = 0; i<num; i++)
+        for (int i = 0; i < num; i++)
         {
             Console.WriteLine();
         }
@@ -1118,7 +1164,7 @@ public class Pilot
         }
 
         pc++;
-       
+
     }
 
     void Execute_SAVE(Instruction ins)
@@ -1131,7 +1177,7 @@ public class Pilot
 
         if (!var_name.Equals(str.TrimEnd())) { RuntimeError("Label does not match line"); return; }
 
-        if(!str_vars.ContainsKey(var_name)) { RuntimeError("Label not found : " + var_name); return;  }
+        if (!str_vars.ContainsKey(var_name)) { RuntimeError("Label not found : " + var_name); return; }
 
         str_vars[var_name] = accept;
 
@@ -1144,7 +1190,7 @@ public class Pilot
 
         string str = FormatString(ins.body);
 
-        if(error!=null) {  return; }
+        if (error != null) { return; }
 
         Console.WriteLine(str);
 
@@ -1166,7 +1212,7 @@ public class Pilot
 
     void Execute_U(Instruction ins)
     {
-        if(routines.Count>=STACK_SIZE) { RuntimeError("Routine overflow"); return; }
+        if (routines.Count >= STACK_SIZE) { RuntimeError("Routine overflow"); return; }
 
         string label = ins.body.Trim();
 
@@ -1183,7 +1229,7 @@ public class Pilot
     {
         var start = DateTime.Now;
 
-        while ((DateTime.Now - start).TotalSeconds < 6 && !Console.KeyAvailable)
+        while ((DateTime.Now - start).TotalSeconds < delay && !Console.KeyAvailable)
         {
             Thread.Sleep(100);
         }
@@ -1213,7 +1259,7 @@ public class Pilot
         {
             var start = DateTime.Now;
 
-            while ((DateTime.Now - start).TotalSeconds < 6 && !Console.KeyAvailable)
+            while ((DateTime.Now - start).TotalSeconds < delay && !Console.KeyAvailable)
             {
                 Thread.Sleep(100);
             }
@@ -1252,7 +1298,7 @@ public class Pilot
     {
         var start = DateTime.Now;
 
-        while ((DateTime.Now - start).TotalSeconds < 6 && !Console.KeyAvailable)
+        while ((DateTime.Now - start).TotalSeconds < delay && !Console.KeyAvailable)
         {
             Thread.Sleep(100);
         }
@@ -1316,11 +1362,11 @@ public class Pilot
      */
     public bool FormatIsValid(string str)
     {
-        if(String.IsNullOrEmpty(str)) { return false; }
+        if (String.IsNullOrEmpty(str)) { return false; }
 
-        if ( !(str[0]=='*' || str[0]=='#' || str[0]=='$')) { return false; };
+        if (!(str[0] == '*' || str[0] == '#' || str[0] == '$')) { return false; };
 
-        for(int i=1;i<str.Length;i++)
+        for (int i = 1; i < str.Length; i++)
         {
             if (!((Char.IsLetter(str[i]) && Char.IsUpper(str[i])) || Char.IsNumber(str[i]))) { return false; }
         }
@@ -1400,7 +1446,7 @@ public class Pilot
 
             }
 
-            if (!ins.type.All(Char.IsUpper) ) { SyntaxError("Invalid instruction format"); return ins; }//ins type is lowercase
+            if (!ins.type.All(Char.IsUpper)) { SyntaxError("Invalid instruction format"); return ins; }//ins type is lowercase
 
             if (!instructions_list.Contains(ins.type)) { SyntaxError("Unknow instruction found : " + ins.type); return ins; }
 
@@ -1435,7 +1481,7 @@ public class Pilot
         while (index < str.Length)
         {
             //double symbol 
-            if ( (index + 1 < str.Length) && (str[index] == str[index + 1]) && (str[index] == '#' || str[index] == '$') )
+            if ((index + 1 < str.Length) && (str[index] == str[index + 1]) && (str[index] == '#' || str[index] == '$'))
             {
                 s += str[index];
                 index += 2;
@@ -1443,7 +1489,7 @@ public class Pilot
             }
 
             //single symbol
-            if ( (index + 1 < str.Length) && (str[index] == '#' || str[index] == '$') )
+            if ((index + 1 < str.Length) && (str[index] == '#' || str[index] == '$'))
             {
                 int end = index;
                 while (end < str.Length && !Char.IsWhiteSpace(str[end])) { end++; }
@@ -1469,7 +1515,7 @@ public class Pilot
                 index = end;
                 continue;
             }
-            
+
             //default append
             s += str[index];
             index++;

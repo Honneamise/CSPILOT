@@ -54,8 +54,14 @@ HOLD: Hold scroll
 HOLD[COND]:
 HOLD[COND]: *LABEL
 ----------
+KEYBOARD: Read a single key with timeout
+KEYBOARD[COND]:
+----------
 INMAX: Set max input line length
 INMAX[COND]: number
+----------
+INTERVAL: Set the timeout for KEYBOARD and WAIT 
+INTERVAL[COND]: number
 ----------
 J: Absolute Jump
 JUMP[COND]: *LABEL
